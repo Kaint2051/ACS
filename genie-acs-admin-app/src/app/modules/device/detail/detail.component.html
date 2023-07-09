@@ -16,7 +16,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="p-fluid p-formgrid grid">
-                    <div class="field m-0 pb-0pb-0 col-12 md:col-2">
+                    <div class="field m-0 pb-0pb-0 col-12 md:col-3">
                         <input
                             (keyup.enter)="onTagInputEntered($event)"
                             pInputText
@@ -65,6 +65,13 @@
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="flex row">
+            <div class="flex-1">
+                <h4>Test Speed</h4>
+            </div>
+        </div>
+        <div class="col-12">
             <div class="card">
                 <div class="p-fluid p-formgrid grid">
                     <div class="field m-0 pb-0pb-0 col-12 md:col-2">
@@ -95,6 +102,7 @@
                             styleClass="p-button-outlined p-button-info"
                             (click)="onTestDownloadBtnClicked($event)"
                             [disabled]="
+                                hasNoTestSpeed ||
                                 !!(loadingService.loading$ | async) ||
                                 !selectedDownloadOption
                             "
@@ -111,7 +119,9 @@
                             optionLabel="text"
                             [options]="downloadOptions"
                             [(ngModel)]="selectedDownloadOption"
-                            [disabled]="!downloadOptions.length"
+                            [disabled]="
+                                hasNoTestSpeed || !downloadOptions.length
+                            "
                         ></p-dropdown>
 
                         <!-- http://speedtest.ftp.otenet.gr/files/test1Mb.db -->
@@ -124,6 +134,7 @@
                             styleClass="p-button-outlined p-button-info"
                             (click)="onTestUploadBtnClicked($event)"
                             [disabled]="
+                                hasNoTestSpeed ||
                                 !!(loadingService.loading$ | async) ||
                                 !uploadLink ||
                                 !selectedUploadOption
@@ -141,7 +152,7 @@
                             optionLabel="text"
                             [options]="uploadOptions"
                             [(ngModel)]="selectedUploadOption"
-                            [disabled]="!uploadOptions.length"
+                            [disabled]="hasNoTestSpeed || !uploadOptions.length"
                         ></p-dropdown>
                     </div>
                 </div>
@@ -327,6 +338,28 @@
                             />
                         </div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
+                            <label>SSID 2.4G Password</label>
+                            <input
+                                [value]="
+                                    getValue(
+                                        device[
+                                            'VirtualParameters.Ssid24gPassword'
+                                        ],
+                                        'value[0]'
+                                    )
+                                "
+                                pInputText
+                                type="password"
+                                (keyup.enter)="
+                                    onSetParamValue(
+                                        $event,
+                                        'VirtualParameters.Ssid24gPassword'
+                                    )
+                                "
+                                [disabled]="!!(loadingService.loading$ | async)"
+                            />
+                        </div>
+                        <div class="field m-0 pb-0pb-0 col-12 md:col-6">
                             <label>SSID 5G</label>
                             <input
                                 [value]="
@@ -347,7 +380,41 @@
                             />
                         </div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
+                            <label>SSID 5G Password</label>
+                            <input
+                                [value]="
+                                    getValue(
+                                        device[
+                                            'VirtualParameters.Ssid5gPassword'
+                                        ],
+                                        'value[0]'
+                                    )
+                                "
+                                pInputText
+                                type="password"
+                                (keyup.enter)="
+                                    onSetParamValue(
+                                        $event,
+                                        'VirtualParameters.Ssid5gPassword'
+                                    )
+                                "
+                                [disabled]="!!(loadingService.loading$ | async)"
+                            />
+                        </div>
+                        <div class="field m-0 pb-0pb-0 col-12 md:col-6">
                             <label>TxThroughput (dBm)</label>
+                            <label
+                                class="status"
+                                *ngIf="calculateTxThroughputStatus === -1"
+                            >
+                                <i class="pi pi-arrow-circle-down"></i
+                            ></label>
+                            <label
+                                class="status"
+                                *ngIf="calculateTxThroughputStatus === 1"
+                            >
+                                <i class="pi pi-arrow-circle-up"></i
+                            ></label>
                             <input
                                 [value]="
                                     getValue(
@@ -364,6 +431,18 @@
                         </div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
                             <label>RxThroughput (dBm)</label>
+                            <label
+                                class="status"
+                                *ngIf="calculateRxThroughputStatus === -1"
+                            >
+                                <i class="pi pi-arrow-circle-down"></i
+                            ></label>
+                            <label
+                                class="status"
+                                *ngIf="calculateRxThroughputStatus === 1"
+                            >
+                                <i class="pi pi-arrow-circle-up"></i
+                            ></label>
                             <input
                                 [value]="
                                     getValue(
