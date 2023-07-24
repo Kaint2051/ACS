@@ -20,3 +20,16 @@ export const toLowerCaseNonAccentVietnamese = (str: string) => {
     str = str.replace(/\u02C6|\u0306|\u031B/g, ''); // Â, Ê, Ă, Ơ, Ư
     return str;
 };
+
+export const encodeTag = (tag: string) => {
+    return encodeURIComponent(tag)
+        .replace(
+            /[!~*'().]/g,
+            (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase()
+        )
+        .replace(/0x(?=[0-9A-Z]{2})/g, '0%78')
+        .replace(/%/g, '0x');
+};
+export const decodeTag = (tag: string) => {
+    return decodeURIComponent(tag.replace(/0x(?=[0-9A-Z]{2})/g, '%'));
+};

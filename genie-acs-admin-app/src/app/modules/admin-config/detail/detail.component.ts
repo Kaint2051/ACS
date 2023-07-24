@@ -42,6 +42,22 @@ export class DetailComponent implements OnInit {
             _id: new FormControl(adminConfig._id, [Validators.required]),
             value: new FormControl(adminConfig.value),
             type: new FormControl('admin-config', [Validators.required]),
+            txThroughputMin: new FormControl(
+                adminConfig.data.txThroughputMin || 0,
+                [Validators.required]
+            ),
+            txThroughputMax: new FormControl(
+                adminConfig.data.txThroughputMax || 0,
+                [Validators.required]
+            ),
+            rxThroughputMin: new FormControl(
+                adminConfig.data.rxThroughputMin || 0,
+                [Validators.required]
+            ),
+            rxThroughputMax: new FormControl(
+                adminConfig.data.rxThroughputMax || 0,
+                [Validators.required]
+            ),
             downloadRatio: new FormControl(
                 adminConfig.data.downloadRatio || 1,
                 [Validators.required]
@@ -200,11 +216,19 @@ export class DetailComponent implements OnInit {
             value: JSON.stringify({
                 uploadRatio: +options.uploadRatio,
                 downloadRatio: +options.downloadRatio,
+                txThroughputMin: +options.txThroughputMin,
+                txThroughputMax: +options.txThroughputMax,
+                rxThroughputMin: +options.rxThroughputMin,
+                rxThroughputMax: +options.rxThroughputMax,
                 ...options,
             }),
             data: {
                 uploadRatio: +options.uploadRatio,
                 downloadRatio: +options.downloadRatio,
+                txThroughputMin: +options.txThroughputMin,
+                txThroughputMax: +options.txThroughputMax,
+                rxThroughputMin: +options.rxThroughputMin,
+                rxThroughputMax: +options.rxThroughputMax,
                 ...options,
             },
         } as AdminConfigResponse;

@@ -46,5 +46,9 @@ export interface AdminConfigResponse extends BaseConfigResponse {
         uploadOptionSize09: string;
         uploadOptionText10: string;
         uploadOptionSize10: string;
+        txThroughputMin: number;
+        txThroughputMax: number;
+        rxThroughputMin: number;
+        rxThroughputMax: number;
     };
 }

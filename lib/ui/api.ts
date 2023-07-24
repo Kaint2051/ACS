@@ -68,6 +68,7 @@ const resources = {
   users: 0 | RESOURCE_DELETE | RESOURCE_PUT,
   faults: 0 | RESOURCE_DELETE,
   tasks: 0,
+  devicelogs: 0,
 };
 
 function singleParam(p: string | string[]): string {

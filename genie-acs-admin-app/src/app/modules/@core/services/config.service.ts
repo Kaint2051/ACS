@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Subject } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { AdminConfigResponse } from 'src/app/modules/@core/api-services/config/response-models/admin-config.response';
 
 @Injectable({
@@ -57,6 +57,10 @@ export class ConfigService {
                 uploadOptionSize09: '',
                 uploadOptionText10: '',
                 uploadOptionSize10: '',
+                txThroughputMin: 0,
+                txThroughputMax: 0,
+                rxThroughputMin: 0,
+                rxThroughputMax: 0,
             },
         });
     public readonly adminConfig$ = this.adminConfigSubject$.asObservable();
@@ -64,6 +68,7 @@ export class ConfigService {
         this.adminConfigSubject$.next(config);
     }
     public readonly version = '2023-04-14T14:03:09.753Z';
+    public readonly NoTestSpeedProductClasses = ['H660EM', 'Archer C64'];
     public readonly paginationConfig = {
         page: 0,
         take10: 10,

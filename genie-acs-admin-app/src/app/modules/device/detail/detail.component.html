@@ -16,6 +16,88 @@
         <div class="col-12">
             <div class="card">
                 <div class="p-fluid p-formgrid grid">
+                    <div class="field m-0 pb-0 col-12 md:col-6">
+                        <p-calendar
+                            [style]="{ width: '27%' }"
+                            [inputStyle]="{ width: '27%' }"
+                            [(ngModel)]="chartDateRange"
+                            (ngModelChange)="chartDateRangeChanged()"
+                            class="m-0 pb-0"
+                            selectionMode="range"
+                            [readonlyInput]="true"
+                        ></p-calendar>
+                    </div>
+                    <div class="field m-0 pb-0 col-12 md:col-6"></div>
+                    <div class="field m-0 pb-0 col-12 md:col-6">
+                        <div class="field m-0 col-12 md:col-2">
+                            <button
+                                pButton
+                                type="button"
+                                class="button export"
+                                (click)="onExportBtnClicked('throughput')"
+                            >
+                                <span
+                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
+                                ></span>
+                                Export
+                            </button>
+                        </div>
+
+                        <p-chart
+                            *ngIf="throughputChartData"
+                            type="line"
+                            [data]="throughputChartData"
+                            [options]="options"
+                        ></p-chart>
+                    </div>
+                    <div class="field m-0 pb-0 col-12 md:col-6">
+                        <div class="field m-0 col-12 md:col-2">
+                            <button
+                                pButton
+                                type="button"
+                                class="button export"
+                                (click)="onExportBtnClicked('traffic')"
+                            >
+                                <span
+                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
+                                ></span>
+                                Export
+                            </button>
+                        </div>
+                        <p-chart
+                            *ngIf="byteChartData"
+                            type="line"
+                            [data]="byteChartData"
+                            [options]="options"
+                        ></p-chart>
+                    </div>
+                    <div class="field m-0 pb-0 col-12 md:col-6">
+                        <div class="field m-0 col-12 md:col-2">
+                            <button
+                                pButton
+                                type="button"
+                                class="button export"
+                                (click)="onExportBtnClicked('connection')"
+                            >
+                                <span
+                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
+                                ></span>
+                                Export
+                            </button>
+                        </div>
+                        <p-chart
+                            *ngIf="clientConnectionCountChartData"
+                            type="line"
+                            [data]="clientConnectionCountChartData"
+                            [options]="options"
+                        ></p-chart>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12">
+            <div class="card">
+                <div class="p-fluid p-formgrid grid">
                     <div class="field m-0 pb-0pb-0 col-12 md:col-3">
                         <input
                             (keyup.enter)="onTagInputEntered($event)"
@@ -66,6 +148,7 @@
                 </div>
             </div>
         </div>
+
         <div class="flex row">
             <div class="flex-1">
                 <h4>Test Speed</h4>
@@ -167,7 +250,7 @@
             <div class="col-12">
                 <div class="card device-info">
                     <div class="p-fluid p-formgrid grid">
-                        <div class="field m-0 pb-0pb-0 col-12 md:col-6">
+                        <div class="field m-0 pb-0 col-12 md:col-6">
                             <label>MAC Address</label>
                             <input
                                 [value]="
@@ -385,7 +468,7 @@
                                 [value]="
                                     getValue(
                                         device[
-                                            'VirtualParameters.Ssid5gPassword'
+                                            'VirtualParameters.Ssid24gPasswordSsid24gPassword'
                                         ],
                                         'value[0]'
                                     )
@@ -402,19 +485,47 @@
                             />
                         </div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
-                            <label>Tx(dBm)</label>
+                            <label>Tx (dBm)</label>
                             <label
                                 class="status"
-                                *ngIf="calculateTxThroughputStatus === -1"
+                                *ngIf="
+                                    calculateTxThroughputStatus ===
+                                    ThroughtputStatuses.Good
+                                "
                             >
-                                <i class="pi pi-arrow-circle-down"></i
-                            ></label>
+                                <span class="range good"></span>
+                                <span>Good</span></label
+                            >
                             <label
                                 class="status"
-                                *ngIf="calculateTxThroughputStatus === 1"
+                                *ngIf="
+                                    calculateTxThroughputStatus ===
+                                    ThroughtputStatuses.Normal
+                                "
                             >
-                                <i class="pi pi-arrow-circle-up"></i
-                            ></label>
+                                <span class="range normal"></span>
+                                <span>Normal</span></label
+                            >
+                            <label
+                                class="status"
+                                *ngIf="
+                                    calculateTxThroughputStatus ===
+                                    ThroughtputStatuses.Bad
+                                "
+                            >
+                                <span class="range bad"></span>
+                                <span>Bad</span></label
+                            >
+                            <label
+                                class="status"
+                                *ngIf="
+                                    calculateTxThroughputStatus ===
+                                    ThroughtputStatuses.NoValue
+                                "
+                            >
+                                <span class="range no-value"></span>
+                                <span>Can't get value</span></label
+                            >
                             <input
                                 [value]="
                                     getValue(
@@ -430,19 +541,47 @@
                             />
                         </div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
-                            <label>Rx(dBm)</label>
+                            <label>Rx (dBm)</label>
                             <label
                                 class="status"
-                                *ngIf="calculateRxThroughputStatus === -1"
+                                *ngIf="
+                                    calculateRxThroughputStatus ===
+                                    ThroughtputStatuses.Good
+                                "
                             >
-                                <i class="pi pi-arrow-circle-down"></i
-                            ></label>
+                                <span class="range good"></span>
+                                <span>Good</span></label
+                            >
                             <label
                                 class="status"
-                                *ngIf="calculateRxThroughputStatus === 1"
+                                *ngIf="
+                                    calculateRxThroughputStatus ===
+                                    ThroughtputStatuses.Normal
+                                "
                             >
-                                <i class="pi pi-arrow-circle-up"></i
-                            ></label>
+                                <span class="range normal"></span>
+                                <span>Normal</span></label
+                            >
+                            <label
+                                class="status"
+                                *ngIf="
+                                    calculateRxThroughputStatus ===
+                                    ThroughtputStatuses.Bad
+                                "
+                            >
+                                <span class="range bad"></span>
+                                <span>Bad</span></label
+                            >
+                            <label
+                                class="status"
+                                *ngIf="
+                                    calculateRxThroughputStatus ===
+                                    ThroughtputStatuses.NoValue
+                                "
+                            >
+                                <span class="range no-value"></span>
+                                <span>Can't get value</span></label
+                            >
                             <input
                                 [value]="
                                     getValue(
@@ -458,7 +597,7 @@
                             />
                         </div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
-                            <label>Bytes Received(bytes)</label>
+                            <label>Bytes Received (Byte)</label>
                             <input
                                 [value]="
                                     getValue(
@@ -474,7 +613,7 @@
                             />
                         </div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
-                            <label>Bytes Sent(bytes)</label>
+                            <label>Bytes Sent (Byte)</label>
                             <input
                                 [value]="
                                     getValue(

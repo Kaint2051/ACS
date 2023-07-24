@@ -33,22 +33,70 @@
                         </div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6"></div>
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
-                            <label>Download Ratio</label>
+                            <label>Tx Min</label>
                             <input
-                                formControlName="downloadRatio"
+                                formControlName="txThroughputMin"
                                 pInputText
-                                type="text"
+                                type="number"
                             />
                             <small
                                 *ngIf="
-                                    formGroup.get('downloadRatio')?.errors &&
-                                    formGroup.get('downloadRatio')?.touched
+                                    formGroup.get('txThroughputMin')?.errors &&
+                                    formGroup.get('txThroughputMin')?.touched
                                 "
                                 class="p-error block"
                                 >this field is required!</small
                             >
                         </div>
-                        <div class="field m-0 pb-0pb-0 col-12 md:col-6"></div>
+                        <div class="field m-0 pb-0pb-0 col-12 md:col-6">
+                            <label>Tx Max</label>
+                            <input
+                                formControlName="txThroughputMax"
+                                pInputText
+                                type="number"
+                            />
+                            <small
+                                *ngIf="
+                                    formGroup.get('txThroughputMax')?.errors &&
+                                    formGroup.get('txThroughputMax')?.touched
+                                "
+                                class="p-error block"
+                                >this field is required!</small
+                            >
+                        </div>
+                        <div class="field m-0 pb-0pb-0 col-12 md:col-6">
+                            <label>Rx Min</label>
+                            <input
+                                formControlName="rxThroughputMin"
+                                pInputText
+                                type="number"
+                            />
+                            <small
+                                *ngIf="
+                                    formGroup.get('rxThroughputMin')?.errors &&
+                                    formGroup.get('rxThroughputMin')?.touched
+                                "
+                                class="p-error block"
+                                >this field is required!</small
+                            >
+                        </div>
+                        <div class="field m-0 pb-0pb-0 col-12 md:col-6">
+                            <label>Rx Max</label>
+                            <input
+                                formControlName="rxThroughputMax"
+                                pInputText
+                                type="number"
+                            />
+                            <small
+                                *ngIf="
+                                    formGroup.get('rxThroughputMax')?.errors &&
+                                    formGroup.get('rxThroughputMax')?.touched
+                                "
+                                class="p-error block"
+                                >this field is required!</small
+                            >
+                        </div>
+
                         <div class="field m-0 pb-0pb-0 col-12 md:col-6">
                             <label>Download Option Text 1</label>
                             <input

@@ -13,11 +13,15 @@ import { CreatePopupComponent } from 'src/app/modules/files/create-popup/create-
 import {
     BehaviorSubject,
     catchError,
+    combineAll,
     concat,
+    concatMap,
     debounceTime,
+    delay,
     filter,
     finalize,
     forkJoin,
+    from,
     map,
     mergeMap,
     of,
@@ -28,7 +32,11 @@ import { ToastSeverities } from 'src/app/modules/@shared/enums/toast-severities.
 import { SortByFieldRequest } from 'src/app/modules/@core/api-services/share-models/sort-by-field.request';
 import { sortBuilder } from 'src/app/modules/@shared/enums/sort-directions.enum';
 import { DeviceApiService } from 'src/app/modules/@core/api-services/device/device.api-service';
-import { get } from 'lodash';
+import { Dictionary, get } from 'lodash';
+import { DeviceSummaryResponse } from 'src/app/modules/@core/api-services/device/response-models/device-summary.response';
+import { LoadingService } from 'src/app/modules/@core/services/loading.service';
+import { index } from 'parsimmon';
+import { decodeTag } from 'src/app/modules/@shared/utils/string.util';
 
 @Component({
     selector: 'app-virtual-param-listing',
@@ -58,7 +66,8 @@ export class ListingComponent implements OnInit {
         private readonly messageService: MessageService,
         private readonly confirmationService: ConfirmationService,
         private readonly dialogService: DialogService,
-        private readonly deviceApiService: DeviceApiService
+        private readonly deviceApiService: DeviceApiService,
+        private readonly loadingService: LoadingService
     ) {}
 
     ngOnInit(): void {
@@ -200,6 +209,12 @@ export class ListingComponent implements OnInit {
                     summary: 'Empty file!',
                 });
             }
+            csvRecordsArray.forEach((r, index) => {
+                if (!r.endsWith(';')) {
+                    return;
+                }
+                csvRecordsArray[index] = r.slice(0, r.length - 1);
+            });
             const [columns, ...contentRows] = csvRecordsArray;
             const pppoeACNameColIndex = columns
                 .split(splitter)
@@ -219,39 +234,84 @@ export class ListingComponent implements OnInit {
                     summary: 'Has no Tags column!',
                 });
             }
-            const refinedRows = contentRows.map((r) =>
-                r
-                    .replace(/"/g, '')
-                    .split(splitter)
-                    .map((v) => v.trim())
-            );
-            const missingRequiredColCount = refinedRows.filter(
-                (r) => !r[pppoeACNameColIndex] || !r[tagsColIndex]
-            ).length;
+            const refinedRows = contentRows
+                .filter((r) => r[pppoeACNameColIndex])
+                .map((r) =>
+                    r
+                        .replace(/"/g, '')
+                        .split(splitter)
+                        .map((v) => v.trim())
+                );
+            const missingRequiredColCount = refinedRows.filter((r, index) => {
+                const value = r[pppoeACNameColIndex];
+                if (!value) {
+                    console.log(
+                        'missingRequiredColCount index',
+                        index,
+                        refinedRows[index],
+                        contentRows[index]
+                    );
+                }
+                return !value;
+            }).length;
 
-            if (missingRequiredColCount > 0) {
-                return this.messageService.add({
-                    severity: ToastSeverities.Error,
-                    summary: `${missingRequiredColCount} row(s) have no PPPoEACName or Tags value!`,
-                });
-            }
+            // if (missingRequiredColCount > 0) {
+            //     return this.messageService.add({
+            //         severity: ToastSeverities.Error,
+            //         summary: `${missingRequiredColCount} row(s) have no PPPoEACName!`,
+            //     });
+            // }
+
             let successTaggingCount = 0;
-            concat(refinedRows)
+            const pppoeAcNames = [
+                ...new Set(
+                    refinedRows.map((r) =>
+                        r[pppoeACNameColIndex].replace(/"/g, '')
+                    )
+                ),
+            ];
+            this.loadingService.load();
+            const deviceLookup: Dictionary<DeviceSummaryResponse> = {};
+            from(pppoeAcNames)
                 .pipe(
-                    mergeMap((r) => {
-                        const pppoeAcName = r[pppoeACNameColIndex];
-                        const tagValues = r[tagsColIndex];
-                        if (!pppoeAcName || !tagValues) {
-                            this.messageService.add({
-                                severity: ToastSeverities.Error,
-                                summary: 'Has no PPPoEACName or Tags value!',
-                            });
-                            return of(false);
+                    concatMap((n) => {
+                        return this.deviceApiService.getByPPPoEACName$(n);
+                    }),
+                    tap((d) => {
+                        if (!d) {
+                            return;
                         }
-                        return this.deviceApiService
-                            .getByPPPoEACName$(pppoeAcName)
+                        const pppoeAcName = get(
+                            (d as any)['VirtualParameters.PPPoEACName'],
+                            'value[0]'
+                        );
+                        if (!pppoeAcName) {
+                            return;
+                        }
+                        deviceLookup[pppoeAcName] = d;
+                    }),
+                    finalize(() => {
+                        console.log(Object.keys(deviceLookup));
+
+                        concat(refinedRows)
                             .pipe(
-                                mergeMap((item) => {
+                                delay(1000),
+                                mergeMap((r) => {
+                                    const pppoeAcName = r[
+                                        pppoeACNameColIndex
+                                    ].replace(/"/g, '');
+                                    const tagValues = (
+                                        r[tagsColIndex] || ''
+                                    ).replace(/"/g, '');
+                                    if (!pppoeAcName) {
+                                        // this.messageService.add({
+                                        //     severity: ToastSeverities.Error,
+                                        //     summary: 'Has no PPPoEACName!',
+                                        // });
+                                        return of(false);
+                                    }
+
+                                    const item = deviceLookup[pppoeAcName];
                                     if (!item) {
                                         return of(undefined);
                                     }
@@ -269,7 +329,7 @@ export class ListingComponent implements OnInit {
                                         ''
                                     );
                                     if (!originTagValues) {
-                                        return of(undefined);
+                                        return of([deviceId, tagValues]);
                                     }
                                     return forkJoin([
                                         ...originTagValues
@@ -278,42 +338,170 @@ export class ListingComponent implements OnInit {
                                                 this.deviceApiService.deleteTag$(
                                                     {
                                                         device: deviceId,
-                                                        tagVal: tagVal,
+                                                        tagVal: decodeTag(
+                                                            tagVal
+                                                        ),
                                                     }
                                                 )
                                             ),
                                     ]).pipe(map(() => [deviceId, tagValues]));
-                                })
-                            );
-                    }),
-                    mergeMap((result) => {
-                        if (!result) {
-                            return of(undefined);
-                        }
-                        const [deviceId, tagValues] = result as string[];
-                        return forkJoin([
-                            ...(tagValues as string).split(';').map((tagVal) =>
-                                this.deviceApiService.upsertTag$({
-                                    device: deviceId,
-                                    tagVal: tagVal,
-                                })
-                            ),
-                        ]).pipe(map(() => true));
-                    }),
-                    tap((result) => {
-                        if (!result) {
-                            return;
-                        }
-                        successTaggingCount++;
-                    }),
-                    finalize(() => {
-                        return this.messageService.add({
-                            severity: ToastSeverities.Info,
-                            summary: `Processed ${successTaggingCount}/${contentRows.length}!`,
-                        });
+                                }),
+                                mergeMap((result) => {
+                                    if (!result) {
+                                        return of(undefined);
+                                    }
+                                    const [deviceId, tagValues] =
+                                        result as string[];
+                                    if (!tagValues) {
+                                        return of(undefined);
+                                    }
+                                    return forkJoin([
+                                        ...(tagValues as string)
+                                            .split(';')
+                                            .map((tagVal) =>
+                                                this.deviceApiService.upsertTag$(
+                                                    {
+                                                        device: deviceId,
+                                                        tagVal: tagVal,
+                                                    }
+                                                )
+                                            ),
+                                    ]).pipe(map(() => true));
+                                }),
+                                tap((result) => {
+                                    if (!result) {
+                                        return;
+                                    }
+                                    successTaggingCount++;
+                                }),
+                                finalize(() => {
+                                    return this.messageService.add({
+                                        severity: ToastSeverities.Info,
+                                        summary: `Processed ${successTaggingCount}/${contentRows.length}!`,
+                                    });
+                                }),
+                                finalize(() => this.loadingService.unload())
+                            )
+                            .subscribe();
                     })
                 )
                 .subscribe();
+            // concat(pppoeAcNames)
+            //     .pipe(
+            //         mergeMap((n) => {
+            //             return this.deviceApiService.getByPPPoEACName$(n);
+            //         }),
+            //         tap((d) => {
+            //             const pppoeAcName = get(
+            //                 (d as any)['VirtualParameters.PPPoEACName'],
+            //                 'value[0]'
+            //             );
+            //             if (!pppoeAcName) {
+            //                 return;
+            //             }
+            //             deviceLookup[pppoeAcName] = d;
+            //         }),
+            //         finalize(() => {
+            //             console.log(Object.keys(deviceLookup));
+            //         })
+            //     )
+            //     .subscribe();
+
+            // this.deviceApiService
+            //     .getByPPPoEACNames$(pppoeAcNames)
+            //     .subscribe((devices) => {
+            //         const deviceLookup: Dictionary<DeviceSummaryResponse> = {};
+            //         devices.forEach((d) => {
+            //             const pppoeAcName = get(
+            //                 (d as any)['VirtualParameters.PPPoEACName'],
+            //                 'value[0]'
+            //             );
+            //             if (!pppoeAcName) {
+            //                 return;
+            //             }
+            //             deviceLookup[pppoeAcName] = d;
+            //         });
+            //         concat(refinedRows)
+            //             .pipe(
+            //                 delay(1000),
+            //                 mergeMap((r) => {
+            //                     const pppoeAcName = r[pppoeACNameColIndex];
+            //                     const tagValues = r[tagsColIndex] || '';
+            //                     if (!pppoeAcName) {
+            //                         this.messageService.add({
+            //                             severity: ToastSeverities.Error,
+            //                             summary: 'Has no PPPoEACName!',
+            //                         });
+            //                         return of(false);
+            //                     }
+
+            //                     const item = deviceLookup[pppoeAcName];
+            //                     if (!item) {
+            //                         return of(undefined);
+            //                     }
+            //                     const deviceId = get(
+            //                         item['DeviceID.ID'],
+            //                         'value[0]',
+            //                         ''
+            //                     );
+            //                     if (!deviceId) {
+            //                         return of(undefined);
+            //                     }
+            //                     const originTagValues = get(
+            //                         item['TagValues'],
+            //                         'value[0]',
+            //                         ''
+            //                     );
+            //                     if (!originTagValues) {
+            //                         return of([deviceId, tagValues]);
+            //                     }
+            //                     return forkJoin([
+            //                         ...originTagValues
+            //                             .split(splitter)
+            //                             .map((tagVal) =>
+            //                                 this.deviceApiService.deleteTag$({
+            //                                     device: deviceId,
+            //                                     tagVal: tagVal,
+            //                                 })
+            //                             ),
+            //                     ]).pipe(map(() => [deviceId, tagValues]));
+            //                 }),
+            //                 mergeMap((result) => {
+            //                     if (!result) {
+            //                         return of(undefined);
+            //                     }
+            //                     const [deviceId, tagValues] =
+            //                         result as string[];
+            //                     if (!tagValues) {
+            //                         return of(undefined);
+            //                     }
+            //                     return forkJoin([
+            //                         ...(tagValues as string)
+            //                             .split(';')
+            //                             .map((tagVal) =>
+            //                                 this.deviceApiService.upsertTag$({
+            //                                     device: deviceId,
+            //                                     tagVal: tagVal,
+            //                                 })
+            //                             ),
+            //                     ]).pipe(map(() => true));
+            //                 }),
+            //                 tap((result) => {
+            //                     if (!result) {
+            //                         return;
+            //                     }
+            //                     successTaggingCount++;
+            //                 }),
+            //                 finalize(() => {
+            //                     return this.messageService.add({
+            //                         severity: ToastSeverities.Info,
+            //                         summary: `Processed ${successTaggingCount}/${contentRows.length}!`,
+            //                     });
+            //                 }),
+            //                 finalize(() => this.loadingService.unload())
+            //             )
+            //             .subscribe();
+            //     });
         };
 
         reader.onerror = function () {

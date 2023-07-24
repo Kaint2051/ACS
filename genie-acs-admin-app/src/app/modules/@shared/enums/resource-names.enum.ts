@@ -8,4 +8,5 @@ export enum ResourceNames {
     Provisions = 'provisions',
     Users = 'users',
     VirtualParameters = 'virtualParameters',
+    DeviceLogs = 'devicelogs',
 }

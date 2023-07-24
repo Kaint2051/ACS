@@ -1,11 +1,19 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MenuItem } from 'primeng/api';
-import { Subscription, filter, withLatestFrom } from 'rxjs';
+import {
+    Subscription,
+    distinctUntilChanged,
+    filter,
+    fromEvent,
+    map,
+    withLatestFrom,
+} from 'rxjs';
 import { Product } from 'src/app/modules/@shared/api/product';
 import { LayoutService } from 'src/app/modules/layout/service/app.layout.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ConfigService } from 'src/app/modules/@core/services/config.service';
 import { AuthService } from 'src/app/modules/@core/services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
     templateUrl: './dashboard.component.html',
@@ -27,7 +35,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         public layoutService: LayoutService,
         private readonly sanitizer: DomSanitizer,
         private readonly configService: ConfigService,
-        private readonly authService: AuthService
+        private readonly authService: AuthService,
+        private readonly router: Router
     ) {
         this.subscriptions.push(
             this.layoutService.configUpdate$.subscribe(() => {
@@ -45,9 +54,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
                         );
                     setTimeout(() => {
                         this.displayChart = true;
-                    }, 1000);
+                    }, 500);
                 }),
-            this.authService.jwt$.subscribe((jwt) => {})
+            fromEvent(window, 'message')
+                .pipe(
+                    filter((e: any) => !!e.data?.startsWith),
+                    map((e: any) => e.data),
+                    distinctUntilChanged(),
+                    filter((url: string) => url.includes('#!/devices/'))
+                )
+                .subscribe((url) => {
+                    const filterQueryParam = url.slice(
+                        url.indexOf('?filter=') + 8
+                    );
+                    console.log('aaaa ', filterQueryParam);
+                    this.router.navigate(['/devices'], {
+                        queryParams: {
+                            filter: decodeURIComponent(filterQueryParam),
+                        },
+                    });
+                })
         );
     }
 

@@ -1,5 +1,5 @@
-import { Component, OnInit } from '@angular/core';
-import { MessageService, SortEvent } from 'primeng/api';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { MessageService } from 'primeng/api';
 import { DialogService } from 'primeng/dynamicdialog';
 import {
     PaginationResponse,
@@ -8,11 +8,12 @@ import {
 import { ConfigService } from 'src/app/modules/@core/services/config.service';
 import { DeviceSummaryResponse } from 'src/app/modules/@core/api-services/device/response-models/device-summary.response';
 import { DeviceApiService } from 'src/app/modules/@core/api-services/device/device.api-service';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SortByFieldRequest } from 'src/app/modules/@core/api-services/share-models/sort-by-field.request';
 import { sortBuilder } from 'src/app/modules/@shared/enums/sort-directions.enum';
 import {
     BehaviorSubject,
+    Subscription,
     catchError,
     concat,
     debounceTime,
@@ -23,6 +24,10 @@ import {
 import { get } from 'lodash';
 import { ToastSeverities } from 'src/app/modules/@shared/enums/toast-severities.enum';
 import { AngularCsv } from 'angular-csv-ext/dist/Angular-csv';
+import {
+    decodeTag,
+    encodeTag,
+} from 'src/app/modules/@shared/utils/string.util';
 
 @Component({
     selector: 'app-device-listing',
@@ -38,13 +43,16 @@ import { AngularCsv } from 'angular-csv-ext/dist/Angular-csv';
         `,
     ],
 })
-export class ListingComponent implements OnInit {
+export class ListingComponent implements OnInit, OnDestroy {
     searchTerm = '';
     paginationData: PaginationResponse<DeviceSummaryResponse> =
         PaginationResponseBuilder({ Items: [] });
     private readonly searchTerm$ = new BehaviorSubject<string>('');
+    private rawFilter: string = '';
+    subscriptions: Subscription[] = [];
     constructor(
         private readonly router: Router,
+        private readonly route: ActivatedRoute,
         private readonly deviceApiService: DeviceApiService,
         private readonly configService: ConfigService,
         private readonly messageService: MessageService,
@@ -52,12 +60,22 @@ export class ListingComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
-        this.searchTerm$
-            .asObservable()
-            .pipe(debounceTime(300))
-            .subscribe((val) => {
-                this.fetchData(val);
-            });
+        this.subscriptions.push(
+            this.searchTerm$
+                .asObservable()
+                .pipe(debounceTime(300))
+                .subscribe((val) => {
+                    this.fetchData(val);
+                }),
+            this.route.queryParams.subscribe((queryParam) => {
+                const filter = queryParam['filter'];
+                if (!filter) {
+                    return;
+                }
+                console.log(filter);
+                this.rawFilter = filter;
+            })
+        );
     }
 
     fetchData(
@@ -67,9 +85,24 @@ export class ListingComponent implements OnInit {
         sorts: SortByFieldRequest[] = [],
         projectionFields: string[] = []
     ) {
-        const filter = search
-            ? `Tags.${search} IS NOT NULL OR LOWER(VirtualParameters.PPPoEACName) LIKE "%${search.toLocaleLowerCase()}%"`
-            : '';
+        const lowerCaseSearchTerm = (search || '').trim().toLocaleLowerCase();
+        const searchTerm = [
+            'DeviceID.SerialNumber',
+            'DeviceID.ProductClass',
+            'VirtualParameters.SoftwareVersion',
+            'VirtualParameters.IPV4Address',
+            'VirtualParameters.OUI',
+            'VirtualParameters.SSID24G',
+            'VirtualParameters.SSID5G',
+            'VirtualParameters.PPPoEACName',
+        ]
+            .map((c) => `LOWER(${c}) LIKE "%${lowerCaseSearchTerm}%"`)
+            .join(' OR ');
+        const filter = lowerCaseSearchTerm
+            ? `Tags.${encodeTag(
+                  (search || '').trim()
+              )} IS NOT NULL OR ${searchTerm}`
+            : this.rawFilter;
 
         this.deviceApiService
             .get$(page, take, filter, sorts, projectionFields)
@@ -98,7 +131,7 @@ export class ListingComponent implements OnInit {
         console.log('nextPage', event);
         const sorts = sortBuilder(event.multiSortMeta);
         const page = event.first / event.rows;
-        this.fetchData(this.searchTerm, page, event.rows, sorts);
+        this.fetchData(this.searchTerm$.value, page, event.rows, sorts);
     }
 
     getStatusColor(item: DeviceSummaryResponse) {
@@ -126,7 +159,7 @@ export class ListingComponent implements OnInit {
                     devices.push(
                         ...result.Items.map((d: any) => ({
                             SerialNumber: this.getValue(
-                                d['DeviceID.ProductClass'],
+                                d['DeviceID.SerialNumber'],
                                 'value[0]',
                                 ''
                             ),
@@ -150,16 +183,16 @@ export class ListingComponent implements OnInit {
                                 'value[0]',
                                 ''
                             ),
-                            SSID24G: this.getValue(
-                                d['VirtualParameters.SSID24G'],
-                                'value[0]',
-                                ''
-                            ),
-                            SSID5G: this.getValue(
-                                d['VirtualParameters.SSID5G'],
-                                'value[0]',
-                                ''
-                            ),
+                            // SSID24G: this.getValue(
+                            //     d['VirtualParameters.SSID24G'],
+                            //     'value[0]',
+                            //     ''
+                            // ),
+                            // SSID5G: this.getValue(
+                            //     d['VirtualParameters.SSID5G'],
+                            //     'value[0]',
+                            //     ''
+                            // ),
                             PPPoEACName: this.getValue(
                                 d['VirtualParameters.PPPoEACName'],
                                 'value[0]',
@@ -170,11 +203,13 @@ export class ListingComponent implements OnInit {
                                 'value[0]',
                                 ''
                             ),
-                            TagValues: this.getValue(
-                                d['TagValues'],
-                                'value[0]',
-                                ''
-                            ).replace(/,/g, ';'),
+                            TagValues: decodeTag(
+                                this.getValue(
+                                    d['TagValues'],
+                                    'value[0]',
+                                    ''
+                                ).replace(/,/g, ';')
+                            ),
                         }))
                     );
                 }),
@@ -194,8 +229,8 @@ export class ListingComponent implements OnInit {
                             'SoftwareVersion',
                             'IPV4Address',
                             'OUI',
-                            'SSID24G',
-                            'VirtuaParameters.SSID5G',
+                            // 'SSID24G',
+                            // 'SSID5G',
                             'PPPoEACName',
                             'Inform',
                             'Tags',
@@ -221,6 +256,11 @@ export class ListingComponent implements OnInit {
 
     private extractTags(device: DeviceSummaryResponse) {
         const tagValues = device.TagValues?.value[0] || '';
-        device.TagPlainValues = tagValues.length ? tagValues.split(',') : [];
+        device.TagPlainValues = tagValues.length
+            ? tagValues.split(',').map((t) => decodeTag(t))
+            : [];
+    }
+    ngOnDestroy(): void {
+        this.subscriptions.forEach((s) => s.unsubscribe());
     }
 }

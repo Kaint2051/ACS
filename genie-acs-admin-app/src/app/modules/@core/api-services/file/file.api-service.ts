@@ -72,7 +72,7 @@ export class FileApiService extends BaseApiService {
 
         return this.http.put<any>(
             `${this.baseUrl}/api/files/${req.fileName}`,
-            req,
+            req.file,
             {
                 headers,
             }

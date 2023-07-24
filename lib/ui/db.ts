@@ -17,17 +17,17 @@
  * along with GenieACS.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { Db, GridFSBucket, ObjectId } from "mongodb";
-import { Script } from "vm";
-import { onConnect, optimizeProjection } from "../db";
-import * as mongodbFunctions from "../mongodb-functions";
-import * as expression from "../common/expression";
-import { QueryOptions, Expression } from "../types";
-import { Readable, Writable } from "stream";
-import { minimize } from "../common/boolean-expression";
+import { Db, GridFSBucket, ObjectId } from 'mongodb';
+import { Script } from 'vm';
+import { onConnect, optimizeProjection } from '../db';
+import * as mongodbFunctions from '../mongodb-functions';
+import * as expression from '../common/expression';
+import { QueryOptions, Expression } from '../types';
+import { Readable, Writable } from 'stream';
+import { minimize } from '../common/boolean-expression';
 
 const RESOURCE_COLLECTION = {
-  files: "fs.files",
+  files: 'fs.files',
 };
 
 let db: Db;
@@ -59,41 +59,46 @@ export function query(
   filter = minimize(filter, true);
 
   if (Array.isArray(filter)) {
-    if (resource === "devices") {
+    if (resource === 'devices') {
       filter = mongodbFunctions.processDeviceFilter(filter);
-    } else if (resource === "tasks") {
+    } else if (resource === 'tasks') {
       filter = mongodbFunctions.processTasksFilter(filter);
-    } else if (resource === "faults") {
+    } else if (resource === 'faults') {
       filter = mongodbFunctions.processFaultsFilter(filter);
-    } else if (resource === "users") {
+    } else if (resource === 'users') {
       // Protect against brute force, and dictionary attacks
       const params = expression.extractParams(filter);
-      if (params.includes("password") || params.includes("salt"))
-        return Promise.reject(new Error("Invalid users filter"));
+      if (params.includes('password') || params.includes('salt'))
+        return Promise.reject(new Error('Invalid users filter'));
     }
 
     q = mongodbFunctions.filterToMongoQuery(filter);
   } else if (!filter) {
     return Promise.resolve([]);
   }
-
   return new Promise((resolve, reject) => {
+    console.log('query >>>>> ', q);
     const collection = db.collection(RESOURCE_COLLECTION[resource] || resource);
+    if (q && q['Created']) {
+      const [from, to] = q['Created'].split(';;;');
+      q = { Created: { $gte: parseInt(from), $lte: parseInt(to) } };
+    }
+    console.log('query ----- ', JSON.stringify(q));
     const cursor = collection.find(q);
     if (options.projection) {
       let projection = options.projection;
-      if (resource === "devices") {
+      if (resource === 'devices') {
         projection = mongodbFunctions.processDeviceProjection(
           options.projection
         );
       }
 
-      if (resource === "presets") projection.configurations = 1;
+      if (resource === 'presets') projection.configurations = 1;
       projection = optimizeProjection(projection);
       cursor.project(projection);
     }
 
-    if (resource === "users") cursor.project({ password: 0, salt: 0 });
+    if (resource === 'users') cursor.project({ password: 0, salt: 0 });
 
     if (options.skip) cursor.skip(options.skip);
     if (options.limit) cursor.limit(options.limit);
@@ -107,37 +112,37 @@ export function query(
           {}
         );
 
-      if (resource === "devices") s = mongodbFunctions.processDeviceSort(s);
+      if (resource === 'devices') s = mongodbFunctions.processDeviceSort(s);
       cursor.sort(s);
     }
 
     if (!callback) {
       cursor.toArray((err, docs) => {
         if (err) return reject(err);
-        if (resource === "devices")
+        if (resource === 'devices')
           return resolve(docs.map((d) => mongodbFunctions.flattenDevice(d)));
-        else if (resource === "faults")
+        else if (resource === 'faults')
           return resolve(docs.map((d) => mongodbFunctions.flattenFault(d)));
-        else if (resource === "tasks")
+        else if (resource === 'tasks')
           return resolve(docs.map((d) => mongodbFunctions.flattenTask(d)));
-        else if (resource === "presets")
+        else if (resource === 'presets')
           return resolve(docs.map((d) => mongodbFunctions.flattenPreset(d)));
-        else if (resource === "files")
+        else if (resource === 'files')
           return resolve(docs.map((d) => mongodbFunctions.flattenFile(d)));
         return resolve(docs);
       });
     } else {
       cursor.forEach(
         (doc) => {
-          if (resource === "devices")
+          if (resource === 'devices')
             callback(mongodbFunctions.flattenDevice(doc));
-          else if (resource === "faults")
+          else if (resource === 'faults')
             callback(mongodbFunctions.flattenFault(doc));
-          else if (resource === "tasks")
+          else if (resource === 'tasks')
             callback(mongodbFunctions.flattenTask(doc));
-          else if (resource === "presets")
+          else if (resource === 'presets')
             callback(mongodbFunctions.flattenPreset(doc));
-          else if (resource === "files")
+          else if (resource === 'files')
             callback(mongodbFunctions.flattenFile(doc));
           else callback(doc);
         },
@@ -157,11 +162,11 @@ export function count(resource: string, filter: Expression): Promise<number> {
   filter = minimize(filter, true);
 
   if (Array.isArray(filter)) {
-    if (resource === "devices")
+    if (resource === 'devices')
       filter = mongodbFunctions.processDeviceFilter(filter);
-    else if (resource === "tasks")
+    else if (resource === 'tasks')
       filter = mongodbFunctions.processTasksFilter(filter);
-    else if (resource === "faults")
+    else if (resource === 'faults')
       filter = mongodbFunctions.processFaultsFilter(filter);
     q = mongodbFunctions.filterToMongoQuery(filter);
   } else if (!filter) {
@@ -184,11 +189,11 @@ export async function updateDeviceTags(
     else pull.push(tag);
   }
 
-  const collection = db.collection("devices");
+  const collection = db.collection('devices');
   const object = {};
 
-  if (add?.length) object["$addToSet"] = { _tags: { $each: add } };
-  if (pull?.length) object["$pullAll"] = { _tags: pull };
+  if (add?.length) object['$addToSet'] = { _tags: { $each: add } };
+  if (pull?.length) object['$pullAll'] = { _tags: pull };
 
   await collection.updateOne({ _id: deviceId }, object);
 }
@@ -221,18 +226,18 @@ export function putPreset(
   object: Record<string, unknown>
 ): Promise<void> {
   object = mongodbFunctions.preProcessPreset(object);
-  return putResource("presets", id, object);
+  return putResource('presets', id, object);
 }
 
 export function deletePreset(id: string): Promise<void> {
-  return deleteResource("presets", id);
+  return deleteResource('presets', id);
 }
 
 export function putProvision(
   id: string,
   object: Record<string, unknown>
 ): Promise<void> {
-  if (!object.script) object.script = "";
+  if (!object.script) object.script = '';
   try {
     new Script(`"use strict";(function(){\n${object.script}\n})();`, {
       filename: id,
@@ -241,23 +246,23 @@ export function putProvision(
   } catch (err) {
     if (err.stack?.startsWith(`${id}:`)) {
       return Promise.reject(
-        new Error(`${err.name} at ${err.stack.split("\n", 1)[0]}`)
+        new Error(`${err.name} at ${err.stack.split('\n', 1)[0]}`)
       );
     }
     return Promise.reject(err);
   }
-  return putResource("provisions", id, object);
+  return putResource('provisions', id, object);
 }
 
 export function deleteProvision(id: string): Promise<void> {
-  return deleteResource("provisions", id);
+  return deleteResource('provisions', id);
 }
 
 export function putVirtualParameter(
   id: string,
   object: Record<string, unknown>
 ): Promise<void> {
-  if (!object.script) object.script = "";
+  if (!object.script) object.script = '';
   try {
     new Script(`"use strict";(function(){\n${object.script}\n})();`, {
       filename: id,
@@ -266,38 +271,38 @@ export function putVirtualParameter(
   } catch (err) {
     if (err.stack?.startsWith(`${id}:`)) {
       return Promise.reject(
-        new Error(`${err.name} at ${err.stack.split("\n", 1)[0]}`)
+        new Error(`${err.name} at ${err.stack.split('\n', 1)[0]}`)
       );
     }
     return Promise.reject(err);
   }
-  return putResource("virtualParameters", id, object);
+  return putResource('virtualParameters', id, object);
 }
 
 export function deleteVirtualParameter(id: string): Promise<void> {
-  return deleteResource("virtualParameters", id);
+  return deleteResource('virtualParameters', id);
 }
 
 export function putConfig(
   id: string,
   object: Record<string, unknown>
 ): Promise<void> {
-  return putResource("config", id, object);
+  return putResource('config', id, object);
 }
 
 export function deleteConfig(id: string): Promise<void> {
-  return deleteResource("config", id);
+  return deleteResource('config', id);
 }
 
 export function putPermission(
   id: string,
   object: Record<string, unknown>
 ): Promise<void> {
-  return putResource("permissions", id, object);
+  return putResource('permissions', id, object);
 }
 
 export function deletePermission(id: string): Promise<void> {
-  return deleteResource("permissions", id);
+  return deleteResource('permissions', id);
 }
 
 export function putUser(
@@ -305,7 +310,7 @@ export function putUser(
   object: Record<string, unknown>
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const collection = db.collection("users");
+    const collection = db.collection('users');
     // update instead of replace to keep the password if not set by user
     collection.updateOne(
       { _id: id },
@@ -320,7 +325,7 @@ export function putUser(
 }
 
 export function deleteUser(id: string): Promise<void> {
-  return deleteResource("users", id);
+  return deleteResource('users', id);
 }
 
 export function downloadFile(filename: string): Readable {
@@ -342,9 +347,9 @@ export function putFile(
         metadata: metadata,
       }
     );
-    uploadStream.on("error", reject);
-    contentStream.on("error", reject);
-    uploadStream.on("finish", resolve);
+    uploadStream.on('error', reject);
+    contentStream.on('error', reject);
+    uploadStream.on('finish', resolve);
     contentStream.pipe(uploadStream as Writable);
   });
 }
@@ -360,9 +365,9 @@ export function deleteFile(filename: string): Promise<void> {
 }
 
 export function deleteFault(id: string): Promise<void> {
-  return deleteResource("faults", id);
+  return deleteResource('faults', id);
 }
 
 export function deleteTask(id: ObjectId): Promise<void> {
-  return deleteResource("tasks", id);
+  return deleteResource('tasks', id);
 }

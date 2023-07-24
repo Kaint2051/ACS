@@ -121,6 +121,39 @@ export class DeviceApiService extends BaseApiService {
             );
     }
 
+    getByPPPoEACNames$(
+        pppoEACNames: string[],
+        projectionFields: string[] = []
+    ): Observable<DeviceSummaryResponse[]> {
+        let params = this.gethHttpParamBuilder()
+            .append('limit', 200)
+            .append('skip', 0)
+            .append(
+                'filter',
+                pppoEACNames
+                    .map(
+                        (n) =>
+                            `LOWER(VirtualParameters.PPPoEACName) LIKE "${n
+                                .trim()
+                                .toLocaleLowerCase()}"`
+                    )
+                    .join(' OR ')
+            );
+
+        if (projectionFields && projectionFields.length) {
+            projectionFields.forEach(
+                (f) => (params = params.append('projection', f))
+            );
+        }
+
+        return this.http.get<DeviceSummaryResponse[]>(
+            `${this.baseUrl}/api/devices`,
+            {
+                params,
+            }
+        );
+    }
+
     createTasks$(
         deviceId: string,
         taskRequests: SettingDeviceTaskRequest[] | GettingDeviceTaskRequest[]

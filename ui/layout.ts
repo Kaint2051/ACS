@@ -36,10 +36,25 @@ const adminPages = [
   'permissions',
 ];
 
+const navigationPreventionIfDisplayedInIframe = (): void => {
+  const iFrameDetection = window !== window.parent;
+  if (!iFrameDetection) return;
+  const elements = document.querySelectorAll('.overview-chart-group a');
+  console.log('navigationPreventionIfDisplayedInIframe', elements);
+  if (!elements.length) return;
+
+  for (let i = 0; i < elements.length; i++) {
+    elements[i].addEventListener('click', function (e) {
+      e.preventDefault();
+      window.parent.postMessage(e.target.parentNode.attributes.href.value, '*');
+    });
+  }
+};
+
 const hideHeaderIfDisplayedInIframe = (): void => {
   const iFrameDetection = window !== window.parent;
   if (!iFrameDetection) return;
-
+  window.parent.postMessage(window.location.href, '*');
   console.log('in iframe...........');
   const headerEl = document.querySelector('#header');
   if (!headerEl) return;
@@ -47,10 +62,25 @@ const hideHeaderIfDisplayedInIframe = (): void => {
   (headerEl as any).style.display = 'none';
 };
 
+const logoutIfDefine = (): void => {
+  const decodedUrl = decodeURIComponent(location.href);
+  const processLogout = decodedUrl.includes('logout');
+  if (!processLogout) return;
+  console.log('logout...........');
+  const logoutBtn = document.querySelector('#header .user-menu button');
+  if (!logoutBtn) return;
+  (logoutBtn as any).click();
+  setTimeout(() => {
+    window.close();
+  }, 3000);
+};
+
 const component: ClosureComponent = (): Component => {
   return {
     view: (vnode) => {
+      navigationPreventionIfDisplayedInIframe();
       hideHeaderIfDisplayedInIframe();
+      logoutIfDefine();
       let sideMenu, group;
 
       if (adminPages.includes(vnode.attrs['page'])) {
