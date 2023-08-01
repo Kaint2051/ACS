@@ -162,7 +162,7 @@ export class ListingComponent {
 
     onRowDelete(item: UserResponse) {
         const ref = this.confirmationService.confirm({
-            message: 'Do you want to delete this permission',
+            message: 'Do you want to delete this user',
             header: 'Confirmation',
             icon: 'pi pi-info-circle',
             accept: () => {
