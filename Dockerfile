@@ -1,6 +1,10 @@
+# Use the base Ubuntu 22.04 image
 FROM ubuntu:20.04
 
-# Cài đặt các gói phụ thuộc
+# Set up environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install required packages
 RUN apt-get update && apt-get install -y \
     curl \
     tmux \
@@ -8,41 +12,23 @@ RUN apt-get update && apt-get install -y \
     gnupg2 \
     gnupg
 
-# Cài đặt Node.js và npm
+# Install Node.js and npm
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash -
 RUN apt-get install -y nodejs
 
-# Cài đặt MongoDB
-RUN curl -fsSL https://www.mongodb.org/static/pgp/server-5.0.asc | apt-key add -
-RUN echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/5.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-5.0.list
-RUN apt-get update
-
-# Nhập khóa công khai MongoDB
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv B00A0BD1E2C63C11
-
-# Xác minh chữ ký của kho lưu trữ MongoDB
-RUN apt-get update && apt-get install -y apt-transport-https
-RUN apt-get update
-
-# Cài đặt MongoDB
-RUN apt-get install -y mongodb-org
-RUN mongod --fork --logpath /var/log/mongodb.log --config /etc/mongod.conf
-
-
-# Cài đặt yarn
+# Install yarn
 RUN npm install -g yarn
 
-# Sao chép thư mục chứa mã nguồn
+# Copy the source code to the container
 COPY . /genieacs-customization
 WORKDIR /genieacs-customization
 
-# Cài đặt các gói phụ thuộc và build
+# Install dependencies and build the app
 RUN yarn install
 RUN yarn run build
 
-# Chạy các lệnh còn lại
+# Set up GenieACS start script
 WORKDIR /genieacs-customization/dist/bin
-
 RUN touch genieacs-start.sh \
     && chmod 777 genieacs-start.sh \
     && echo '#!/bin/sh' >> ./genieacs-start.sh \
@@ -62,13 +48,17 @@ RUN touch genieacs-start.sh \
     && echo 'echo "To deattach, press Ctrl+B-D"' >> ./genieacs-start.sh \
     && echo 'echo "To stop GenieACS, use: ./genieacs-stop.sh"' >> ./genieacs-start.sh
 
-# Cài đặt Angular CLI và các gói phụ thuộc cho ứng dụng admin-app
+# Install Angular CLI and dependencies for the admin app
 WORKDIR /genieacs-customization/genie-acs-admin-app
 RUN yarn global add @angular/cli@14.0.6
 RUN yarn install
 
-# Mở các cổng cần thiết
-EXPOSE 7547 7548 3000 4200 27017
+# Install schedule
+WORKDIR /genieacs-customization/schedule
+RUN npm install
+# Expose necessary ports
+EXPOSE 7547 7548 3000 4200
 
-# Chạy các lệnh khi container được khởi động
-CMD ["/bin/bash", "-c", "mongod --fork --config /etc/mongod.conf & cd /genieacs-customization/dist/bin && ./genieacs-start.sh & cd /genieacs-customization/genie-acs-admin-app && yarn start"]
+# Start GenieACS and the admin app when the container is run
+CMD ["/bin/bash", "-c", "cd /genieacs-customization/dist/bin && ./genieacs-start.sh & cd /genieacs-customization/schedule && npm start & cd /genieacs-customization/genie-acs-admin-app && yarn start"]
+

@@ -39,7 +39,7 @@ const options = {
   MONGODB_CONNECTION_URL: {
     type: 'string',
     default:
-      'mongodb+srv://test01:test01123456@cluster0.bzj83.mongodb.net/?retryWrites=true&w=majority',
+      'mongodb://mongoservice:27017/genieacs',
   },
 
   CWMP_WORKER_PROCESSES: { type: 'int', default: 0 },

@@ -17,37 +17,52 @@
  * along with GenieACS.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { ClosureComponent, Component } from "mithril";
-import { m } from "./components";
-import config from "./config";
-import * as store from "./store";
-import pieChartComponent from "./pie-chart-component";
+import { ClosureComponent, Component } from 'mithril';
+import { m } from './components';
+import config from './config';
+import * as store from './store';
+import pieChartComponent from './pie-chart-component';
 
 const GROUPS = config.ui.overview.groups || {};
 const CHARTS = {};
 for (const group of Object.values(GROUPS)) {
-  for (const chartName of Object.values(group["charts"]) as string[])
+  for (const chartName of Object.values(group['charts']) as string[])
     CHARTS[chartName] = config.ui.overview.charts[chartName];
 }
+
+const navigationPreventionIfDisplayedInIframe = (): void => {
+  const iFrameDetection = window !== window.parent;
+  if (!iFrameDetection) return;
+  const chartDiv = document.querySelector('.overview-chart-group');
+  if (!chartDiv) return;
+  chartDiv.addEventListener(`click`, (e) => {
+    e.preventDefault();
+    const a = e.target.closest('a');
+    const isNotAnchorTag = !a || a.tagName.toLowerCase() !== 'a';
+    if (isNotAnchorTag) return;
+    console.log(a);
+    window.parent.postMessage(a.attributes.href.value, '*');
+  });
+};
 
 function queryCharts(charts: Record<string, unknown>): Record<string, unknown> {
   charts = Object.assign({}, charts);
   for (let [chartName, chart] of Object.entries(charts)) {
     charts[chartName] = chart = Object.assign({}, chart);
-    chart["slices"] = Object.assign({}, chart["slices"]);
-    for (let [sliceName, slice] of Object.entries(chart["slices"])) {
-      const filter = slice["filter"];
-      chart["slices"][sliceName] = slice = Object.assign({}, slice);
-      slice["count"] = store.count("devices", filter);
+    chart['slices'] = Object.assign({}, chart['slices']);
+    for (let [sliceName, slice] of Object.entries(chart['slices'])) {
+      const filter = slice['filter'];
+      chart['slices'][sliceName] = slice = Object.assign({}, slice);
+      slice['count'] = store.count('devices', filter);
     }
   }
   return charts;
 }
 
 export function init(): Promise<Record<string, unknown>> {
-  if (!window.authorizer.hasAccess("devices", 1)) {
+  if (!window.authorizer.hasAccess('devices', 1)) {
     return Promise.reject(
-      new Error("You are not authorized to view this page")
+      new Error('You are not authorized to view this page')
     );
   }
 
@@ -57,25 +72,26 @@ export function init(): Promise<Record<string, unknown>> {
 export const component: ClosureComponent = (): Component => {
   return {
     view: (vnode) => {
-      document.title = "Overview - GenieACS";
+      navigationPreventionIfDisplayedInIframe();
+      document.title = 'Overview - GenieACS';
       const children = [];
       for (const group of Object.values(GROUPS)) {
-        if (group["label"]) children.push(m("h1", group["label"]));
+        if (group['label']) children.push(m('h1', group['label']));
 
         const groupChildren = [];
-        for (const chartName of Object.values(group["charts"]) as string[]) {
-          const chart = vnode.attrs["charts"][chartName];
+        for (const chartName of Object.values(group['charts']) as string[]) {
+          const chart = vnode.attrs['charts'][chartName];
           const chartChildren = [];
-          if (chart.label) chartChildren.push(m("h2", chart.label));
+          if (chart.label) chartChildren.push(m('h2', chart.label));
 
           const attrs = {};
-          attrs["chart"] = chart;
+          attrs['chart'] = chart;
           chartChildren.push(m(pieChartComponent, attrs));
 
-          groupChildren.push(m(".overview-chart", chartChildren));
+          groupChildren.push(m('.overview-chart', chartChildren));
         }
 
-        children.push(m(".overview-chart-group", groupChildren));
+        children.push(m('.overview-chart-group', groupChildren));
       }
 
       return children;

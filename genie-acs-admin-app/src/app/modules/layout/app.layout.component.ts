@@ -1,21 +1,23 @@
 import { Component, OnDestroy, Renderer2, ViewChild } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { filter, Subscription } from 'rxjs';
+import { filter, Subscription, withLatestFrom } from 'rxjs';
 import { LayoutService } from './service/app.layout.service';
 import { AppSidebarComponent } from './app.sidebar.component';
 import { AppTopBarComponent } from './app.topbar.component';
 import { LoadingService } from 'src/app/modules/@core/services/loading.service';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { ConfigService } from 'src/app/modules/@core/services/config.service';
+import { AuthService } from 'src/app/modules/@core/services/auth.service';
 
 @Component({
     selector: 'app-layout',
     templateUrl: './app.layout.component.html',
 })
 export class AppLayoutComponent implements OnDestroy {
-    overlayMenuOpenSubscription: Subscription;
-
     menuOutsideClickListener: any;
 
     profileMenuOutsideClickListener: any;
+    subscriptions: Subscription[] = [];
 
     @ViewChild(AppSidebarComponent) appSidebar!: AppSidebarComponent;
 
@@ -27,7 +29,7 @@ export class AppLayoutComponent implements OnDestroy {
         public renderer: Renderer2,
         public router: Router
     ) {
-        this.overlayMenuOpenSubscription =
+        this.subscriptions = [
             this.layoutService.overlayOpen$.subscribe(() => {
                 if (!this.menuOutsideClickListener) {
                     this.menuOutsideClickListener = this.renderer.listen(
@@ -86,7 +88,8 @@ export class AppLayoutComponent implements OnDestroy {
                 if (this.layoutService.state.staticMenuMobileActive) {
                     this.blockBodyScroll();
                 }
-            });
+            }),
+        ];
 
         this.router.events
             .pipe(filter((event) => event instanceof NavigationEnd))
@@ -159,9 +162,7 @@ export class AppLayoutComponent implements OnDestroy {
     }
 
     ngOnDestroy() {
-        if (this.overlayMenuOpenSubscription) {
-            this.overlayMenuOpenSubscription.unsubscribe();
-        }
+        this.subscriptions.forEach((s) => s.unsubscribe());
 
         if (this.menuOutsideClickListener) {
             this.menuOutsideClickListener();

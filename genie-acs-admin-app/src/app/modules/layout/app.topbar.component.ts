@@ -27,7 +27,7 @@ export class AppTopBarComponent implements OnInit {
                 icon: 'pi pi-sign-out',
                 command: () => {
                     console.log('Logout');
-                    this.authService.signOut();
+                    this.authService.signingOut();
                 },
             },
         ];

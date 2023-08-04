@@ -69,6 +69,7 @@ export class ConfigService {
     }
     public readonly version = '2023-04-14T14:03:09.753Z';
     public readonly NoTestSpeedProductClasses = ['H660EM', 'Archer C64'];
+    public readonly NoTxRxProductClasses = ['Archer C64', 'EC225-G5'];
     public readonly paginationConfig = {
         page: 0,
         take10: 10,

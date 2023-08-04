@@ -17,6 +17,7 @@ export class DeviceLogApiService extends BaseApiService {
     }
 
     get$(
+        deviceId: string,
         from: Date,
         to: Date,
         page: number = 1,
@@ -28,7 +29,7 @@ export class DeviceLogApiService extends BaseApiService {
             .append('skip', skip)
             .append(
                 'filter',
-                `Created = "${from.getTime()};;;${to.getTime()}"`
+                `Created = "${deviceId};;;${from.getTime()};;;${to.getTime()}"`
             );
 
         return this.http

@@ -48,6 +48,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
                     withLatestFrom(this.authService.jwt$)
                 )
                 .subscribe(([config, jwt]) => {
+                    const hasValidUrl = !!config.data.dashboardLink;
+                    if (!hasValidUrl) {
+                        return;
+                    }
                     this.urlSafe =
                         this.sanitizer.bypassSecurityTrustResourceUrl(
                             config.data.dashboardLink + '?jwt=' + jwt

@@ -17,6 +17,7 @@ import { DevicePropValueTypes } from 'src/app/modules/@shared/enums/device-prop-
 import {
     formatDDMMYYYYHHmmSS,
     formatDateTimeAsAgo,
+    getEndOfDate,
     getStartAndEndOfDate,
 } from 'src/app/modules/@shared/utils/date.util';
 import { LoadingService } from 'src/app/modules/@core/services/loading.service';
@@ -63,8 +64,8 @@ export class DetailComponent implements OnInit {
     uploadRatio: number = 1;
     private deviceId: string = '';
     hasNoTestSpeed = false;
+    hasNoTxRxInfo = false;
     adminConfig!: AdminConfigResponse;
-    defaultTxRxVal = -1111.1111;
     ThroughtputStatuses = {
         Undefined: -1,
         NoValue: 0,
@@ -110,20 +111,24 @@ export class DetailComponent implements OnInit {
         this.chartDateRangeChanged();
         this.deviceId = this.activatedRoute.snapshot.paramMap.get('id') || '';
         this.goBackToListingIfInvalidDeviceId(this.deviceId);
+        this.chartDateRangeChanged();
         this.fetchDevice(this.deviceId);
         this.fetchAdminConfig();
+    }
+
+    private summonDevice$() {
+        return this.deviceApiService.createSingleTask$({
+            name: DeviceTaskNames.GetParameterValues,
+            parameterNames: ['VirtualParameters'],
+            device: this.deviceId,
+            status: DeviceTaskStatuses.Pending,
+        });
     }
 
     onSummonBtnClicked($event: any) {
         console.log('onSummonBtnClicked');
         this.loadingService.load();
-        this.deviceApiService
-            .createSingleTask$({
-                name: DeviceTaskNames.GetParameterValues,
-                parameterNames: ['VirtualParameters'],
-                device: this.deviceId,
-                status: DeviceTaskStatuses.Pending,
-            })
+        this.summonDevice$()
             .pipe(finalize(() => this.loadingService.unload()))
             .subscribe((result) => {
                 const isCompleted = result.status === DeviceTaskStatuses.Done;
@@ -144,43 +149,61 @@ export class DetailComponent implements OnInit {
             return;
         }
         this.loadingService.load();
-        this.deviceApiService
-            .createTasks$(this.deviceId, [
-                {
-                    device: this.deviceId,
-                    name: DeviceTaskNames.SetParameterValues,
-                    parameterValues: [
-                        [
-                            'VirtualParameters.DownloadURL',
-                            this.selectedDownloadOption.value,
-                            DevicePropValueTypes.String,
-                        ],
-                    ],
-                    status: DeviceTaskStatuses.Pending,
-                },
-            ])
-            .pipe(
-                mergeMap(() => {
-                    return this.deviceApiService.createTasks$(this.deviceId, [
+        this.summonDevice$()
+            .pipe(finalize(() => this.loadingService.unload()))
+            .subscribe((result) => {
+                const isCompleted = result.status === DeviceTaskStatuses.Done;
+                if (!isCompleted) {
+                    const msg = {
+                        severity: ToastSeverities.Error,
+                        summary: 'Can not connect to device!',
+                    };
+                    this.messageService.add(msg);
+                    return;
+                }
+                this.loadingService.load();
+                this.deviceApiService
+                    .createTasks$(this.deviceId, [
                         {
                             device: this.deviceId,
                             name: DeviceTaskNames.SetParameterValues,
                             parameterValues: [
                                 [
-                                    'VirtualParameters.DownloadDiagnosticsState',
-                                    DiagnosticsStates.Requested,
+                                    'VirtualParameters.DownloadURL',
+                                    this.selectedDownloadOption.value,
                                     DevicePropValueTypes.String,
                                 ],
                             ],
                             status: DeviceTaskStatuses.Pending,
                         },
-                    ]);
-                }),
-                tap(() => {
-                    this.poolDiagnosticsState(true, 1000);
-                })
-            )
-            .subscribe(console.log);
+                    ])
+                    .pipe(
+                        mergeMap(() => {
+                            return this.deviceApiService.createTasks$(
+                                this.deviceId,
+                                [
+                                    {
+                                        device: this.deviceId,
+                                        name: DeviceTaskNames.SetParameterValues,
+                                        parameterValues: [
+                                            [
+                                                'VirtualParameters.DownloadDiagnosticsState',
+                                                DiagnosticsStates.Requested,
+                                                DevicePropValueTypes.String,
+                                            ],
+                                        ],
+                                        status: DeviceTaskStatuses.Pending,
+                                    },
+                                ]
+                            );
+                        }),
+                        tap(() => {
+                            this.poolDiagnosticsState(true, 1000);
+                        }),
+                        finalize(() => this.loadingService.unload())
+                    )
+                    .subscribe();
+            });
     }
 
     onTestUploadBtnClicked($event: any) {
@@ -420,6 +443,13 @@ export class DetailComponent implements OnInit {
                 this.extractTags(device);
                 this.hasNoTestSpeed =
                     this.configService.NoTestSpeedProductClasses.includes(
+                        this.getValue(
+                            this.device['DeviceID.ProductClass'],
+                            'value[0]'
+                        ) || ''
+                    );
+                this.hasNoTxRxInfo =
+                    this.configService.NoTxRxProductClasses.includes(
                         this.getValue(
                             this.device['DeviceID.ProductClass'],
                             'value[0]'
@@ -794,84 +824,99 @@ export class DetailComponent implements OnInit {
     }
 
     chartDateRangeChanged() {
+        const deviceId = this.deviceId;
         const [from, to] = this.chartDateRange;
-        if (!from || !to) {
+        if (!deviceId || !from || !to) {
             return;
         }
         console.log(this.chartDateRange);
-        this.deviceLogApiService.get$(from, to, 0, 10000).subscribe((logs) => {
-            this.deviceLogs.originalLogs = logs.Items;
-            this.throughputChartData = {
-                labels: logs.Items.map((l, index) =>
-                    formatDDMMYYYYHHmmSS(l.Created)
-                ),
-                datasets: [
-                    {
-                        label: 'Tx(dBm)',
-                        data: logs.Items.map((i) => i.TxThroughput),
-                        fill: false,
-                        borderColor:
-                            this.documentStyle.getPropertyValue('--blue-500'),
-                        tension: 0.4,
-                    },
-                    {
-                        label: 'Rx(dBm)',
-                        data: logs.Items.map((i) => i.RxThroughput),
-                        fill: false,
-                        borderColor:
-                            this.documentStyle.getPropertyValue('--pink-500'),
-                        tension: 0.4,
-                    },
-                ],
-            };
+        this.deviceLogApiService
+            .get$(deviceId, from, getEndOfDate(to), 0, 10000)
+            .subscribe((logs) => {
+                this.deviceLogs.originalLogs = logs.Items;
+                this.throughputChartData = {
+                    labels: logs.Items.map((l, index) =>
+                        formatDDMMYYYYHHmmSS(l.Created)
+                    ),
+                    datasets: [
+                        {
+                            label: 'Tx(dBm)',
+                            data: logs.Items.map((i) => i.TxThroughput),
+                            fill: false,
+                            borderColor:
+                                this.documentStyle.getPropertyValue(
+                                    '--blue-500'
+                                ),
+                            tension: 0.4,
+                        },
+                        {
+                            label: 'Rx(dBm)',
+                            data: logs.Items.map((i) => i.RxThroughput),
+                            fill: false,
+                            borderColor:
+                                this.documentStyle.getPropertyValue(
+                                    '--pink-500'
+                                ),
+                            tension: 0.4,
+                        },
+                    ],
+                };
 
-            this.deviceLogs = {
-                ...this.deviceLogs,
-                byteSentAvgGapValues: this.buildByteSentData(logs.Items),
-                byteReceivedAvgGapValues: this.buildByteReceivedData(
-                    logs.Items
-                ),
-            };
+                this.deviceLogs = {
+                    ...this.deviceLogs,
+                    byteSentAvgGapValues: this.buildByteSentData(logs.Items),
+                    byteReceivedAvgGapValues: this.buildByteReceivedData(
+                        logs.Items
+                    ),
+                };
 
-            this.byteChartData = {
-                labels: logs.Items.slice(1).map((l, index) =>
-                    formatDDMMYYYYHHmmSS(l.Created)
-                ),
-                datasets: [
-                    {
-                        label: 'Traffic in',
-                        data: this.deviceLogs.byteReceivedAvgGapValues,
-                        fill: false,
-                        borderColor:
-                            this.documentStyle.getPropertyValue('--blue-500'),
-                        tension: 0.4,
-                    },
-                    {
-                        label: 'Traffic out',
-                        data: this.deviceLogs.byteSentAvgGapValues,
-                        fill: false,
-                        borderColor:
-                            this.documentStyle.getPropertyValue('--pink-500'),
-                        tension: 0.4,
-                    },
-                ],
-            };
-            this.clientConnectionCountChartData = {
-                labels: logs.Items.map((l, index) =>
-                    formatDDMMYYYYHHmmSS(l.Created)
-                ),
-                datasets: [
-                    {
-                        label: 'Client Connection',
-                        data: logs.Items.map((i) => i.ClientConnectionNumber),
-                        fill: false,
-                        borderColor:
-                            this.documentStyle.getPropertyValue('--blue-500'),
-                        tension: 0.4,
-                    },
-                ],
-            };
-        });
+                this.byteChartData = {
+                    labels: logs.Items.slice(1).map((l, index) =>
+                        formatDDMMYYYYHHmmSS(l.Created)
+                    ),
+                    datasets: [
+                        {
+                            label: 'Traffic in (MB/min)',
+                            data: this.deviceLogs.byteReceivedAvgGapValues,
+                            fill: false,
+                            borderColor:
+                                this.documentStyle.getPropertyValue(
+                                    '--blue-500'
+                                ),
+                            tension: 0.4,
+                        },
+                        {
+                            label: 'Traffic out (MB/min)',
+                            data: this.deviceLogs.byteSentAvgGapValues,
+                            fill: false,
+                            borderColor:
+                                this.documentStyle.getPropertyValue(
+                                    '--pink-500'
+                                ),
+                            tension: 0.4,
+                        },
+                    ],
+                };
+                this.clientConnectionCountChartData = {
+                    labels: logs.Items.map((l, index) =>
+                        formatDDMMYYYYHHmmSS(l.Created)
+                    ),
+                    datasets: [
+                        {
+                            label: 'Client Connection',
+                            data: logs.Items.map(
+                                (i) => i.ClientConnectionNumber
+                            ),
+                            fill: false,
+                            borderColor:
+                                this.documentStyle.getPropertyValue(
+                                    '--blue-500'
+                                ),
+                            tension: 0.4,
+                        },
+                    ],
+                };
+            });
     }
 
     private buildByteSentData(logs: DeviceLog[]) {
@@ -889,7 +934,7 @@ export class DetailComponent implements OnInit {
         logs.forEach((l, i) => {
             if (!i) return;
             const gapVal = logs[i].BytesSent - logs[i - 1].BytesSent;
-            trafficData.push(gapVal / timeGapInMS);
+            trafficData.push(gapVal < 0 ? 0 : gapVal / timeGapInMS);
         });
         return trafficData;
     }
@@ -909,7 +954,7 @@ export class DetailComponent implements OnInit {
         logs.forEach((l, i) => {
             if (!i) return;
             const gapVal = logs[i].BytesReceived - logs[i - 1].BytesReceived;
-            trafficData.push(gapVal / timeGapInMS);
+            trafficData.push(gapVal < 0 ? 0 : gapVal / timeGapInMS);
         });
         return trafficData;
     }
@@ -919,12 +964,16 @@ export class DetailComponent implements OnInit {
             headers: ['time', 'tx', 'rx'],
         };
         const throughputData = this.deviceLogs.originalLogs.map((l) => ({
-            Created: l.Created,
+            Created: formatDDMMYYYYHHmmSS(l.Created),
             Tx: l.TxThroughput,
             Rx: l.RxThroughput,
         }));
         setTimeout(() => {
-            new AngularCsv(throughputData, 'throughput-' + Date.now(), options);
+            new AngularCsv(
+                throughputData,
+                'Tx_Rx_' + formatDDMMYYYYHHmmSS(Date.now()),
+                options
+            );
         });
         this.messageService.add({
             severity: ToastSeverities.Success,
@@ -943,14 +992,18 @@ export class DetailComponent implements OnInit {
         this.deviceLogs.originalLogs.forEach((l, i) => {
             if (!i) return;
             trafficData.push({
-                Created: l.Created,
+                Created: formatDDMMYYYYHHmmSS(l.Created),
                 AvgByteSentChange: this.deviceLogs.byteSentAvgGapValues[i - 1],
                 AvgByteReceivedChange:
                     this.deviceLogs.byteReceivedAvgGapValues[i - 1],
             });
         });
         setTimeout(() => {
-            new AngularCsv(trafficData, 'traffic-' + Date.now(), options);
+            new AngularCsv(
+                trafficData,
+                'traffic_' + formatDDMMYYYYHHmmSS(Date.now()),
+                options
+            );
         });
         this.messageService.add({
             severity: ToastSeverities.Success,
@@ -962,13 +1015,13 @@ export class DetailComponent implements OnInit {
             headers: ['time', 'connection-count'],
         };
         const connectionData = this.deviceLogs.originalLogs.map((l) => ({
-            Created: l.Created,
+            Created: formatDDMMYYYYHHmmSS(l.Created),
             ConnectionCount: l.ClientConnectionNumber,
         }));
         setTimeout(() => {
             new AngularCsv(
                 connectionData,
-                'client-connection-' + Date.now(),
+                'client_connection_' + formatDDMMYYYYHHmmSS(Date.now()),
                 options
             );
         });

@@ -8,9 +8,10 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { LoginComponent } from 'src/app/modules/auth/login/login.component';
 import { ToastModule } from 'primeng/toast';
+import { LogoutComponent } from 'src/app/modules/auth/logout/logout.component';
 
 @NgModule({
-    declarations: [LoginComponent],
+    declarations: [LoginComponent, LogoutComponent],
     imports: [
         AuthRoutingModule,
         CommonModule,

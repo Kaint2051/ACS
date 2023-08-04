@@ -80,8 +80,13 @@ export function query(
     console.log('query >>>>> ', q);
     const collection = db.collection(RESOURCE_COLLECTION[resource] || resource);
     if (q && q['Created']) {
-      const [from, to] = q['Created'].split(';;;');
-      q = { Created: { $gte: parseInt(from), $lte: parseInt(to) } };
+      const [deviceId, from, to] = q['Created'].split(';;;');
+      q = {
+        $and: [
+          { DeviceId: { $eq: deviceId } },
+          { Created: { $gte: parseInt(from), $lte: parseInt(to) } },
+        ],
+      };
     }
     console.log('query ----- ', JSON.stringify(q));
     const cursor = collection.find(q);

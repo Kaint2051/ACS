@@ -36,6 +36,7 @@ function triggerLoginInIframe(): void {
   const decodedUrl = decodeURIComponent(location.href);
   const hasJwt = decodedUrl.includes('jwt=');
   if (!hasJwt) return;
+  console.log('triggerLoginInIframe ....');
   const jwtToken = decodedUrl.substring(decodedUrl.indexOf('jwt=') + 4);
   document.cookie = `genieacs-ui-jwt=${jwtToken}`;
   setTimeout(() => {

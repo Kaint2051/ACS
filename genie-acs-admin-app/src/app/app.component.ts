@@ -28,6 +28,7 @@ export class AppComponent implements OnInit {
         this.authService.isAuthenticated$
             .pipe(
                 filter((val) => !!val),
+                tap(console.log),
                 mergeMap(() => {
                     return this.configApiService.getAdminConfig$();
                 }),
