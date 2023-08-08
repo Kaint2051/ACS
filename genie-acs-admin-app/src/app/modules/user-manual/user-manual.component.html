@@ -1,0 +1,39 @@
+<div class="card">
+    <div class="container">
+        <div class="flex row">
+            <div class="flex-1">
+                <h3>User manual</h3>
+            </div>
+        </div>
+    </div>
+
+    <p-table [value]="manuals" [tableStyle]="{ 'min-width': '50rem' }">
+        <ng-template pTemplate="header">
+            <tr class="upper-case">
+                <th style="width: 70%">Tên</th>
+                <th style="width: 30%">Tải xuống</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-manual>
+            <tr>
+                <td>{{ manual.name }}</td>
+                <!-- <td>
+                    <a [href]="manual.download" target="_blank">{{
+                        manual.downloadName
+                    }}</a>
+                </td> -->
+                <td>
+                    <button
+                        (click)="downloadManual(manual)"
+                        class="outlined-button"
+                    >
+                        <span
+                            class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
+                        ></span>
+                        Tải xuống
+                    </button>
+                </td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

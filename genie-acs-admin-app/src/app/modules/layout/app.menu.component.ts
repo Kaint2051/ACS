@@ -66,6 +66,11 @@ export class AppMenuComponent implements OnInit {
                         icon: 'pi pi-map',
                         routerLink: ['//version'],
                     },
+                    {
+                        label: 'User manual',
+                        icon: 'pi pi-question-circle',
+                        routerLink: ['//user-manual'],
+                    },
                 ],
             },
         ];

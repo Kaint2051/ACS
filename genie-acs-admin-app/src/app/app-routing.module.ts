@@ -83,6 +83,13 @@ import { NotfoundComponent } from 'src/app/modules/@shared/components/notfound/n
                                     (m) => m.VersionModule
                                 ),
                         },
+                        {
+                            path: 'user-manual',
+                            loadChildren: () =>
+                                import(
+                                    './modules/user-manual/user-manual.module'
+                                ).then((m) => m.UserManualModule),
+                        },
                     ],
                 },
                 {

@@ -903,7 +903,7 @@ export class DetailComponent implements OnInit {
                     ),
                     datasets: [
                         {
-                            label: 'Client Connection',
+                            label: 'Client Connection/Number of users',
                             data: logs.Items.map(
                                 (i) => i.ClientConnectionNumber
                             ),

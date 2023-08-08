@@ -8,91 +8,7 @@
         </div>
     </div>
     <div class="container">
-        <div class="col-12">
-            <div class="card">
-                <div class="p-fluid p-formgrid grid">
-                    <div class="field m-0 pb-0 col-12 md:col-6">
-                        <p-calendar
-                            [style]="{ width: '27%' }"
-                            [inputStyle]="{ width: '27%' }"
-                            [(ngModel)]="chartDateRange"
-                            (ngModelChange)="chartDateRangeChanged()"
-                            class="m-0 pb-0"
-                            selectionMode="range"
-                            [readonlyInput]="true"
-                        ></p-calendar>
-                    </div>
-                    <div class="field m-0 pb-0 col-12 md:col-6"></div>
-                    <div
-                        *ngIf="!hasNoTxRxInfo"
-                        class="field m-0 pb-0 col-12 md:col-6"
-                    >
-                        <div class="field m-0 col-12 md:col-2">
-                            <button
-                                pButton
-                                type="button"
-                                class="button export"
-                                (click)="onExportBtnClicked('throughput')"
-                            >
-                                <span
-                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
-                                ></span>
-                                Export
-                            </button>
-                        </div>
-
-                        <p-chart
-                            *ngIf="throughputChartData"
-                            type="line"
-                            [data]="throughputChartData"
-                            [options]="options"
-                        ></p-chart>
-                    </div>
-                    <div class="field m-0 pb-0 col-12 md:col-6">
-                        <div class="field m-0 col-12 md:col-2">
-                            <button
-                                pButton
-                                type="button"
-                                class="button export"
-                                (click)="onExportBtnClicked('traffic')"
-                            >
-                                <span
-                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
-                                ></span>
-                                Export
-                            </button>
-                        </div>
-                        <p-chart
-                            *ngIf="byteChartData"
-                            type="line"
-                            [data]="byteChartData"
-                            [options]="options"
-                        ></p-chart>
-                    </div>
-                    <div class="field m-0 pb-0 col-12 md:col-6">
-                        <div class="field m-0 col-12 md:col-2">
-                            <button
-                                pButton
-                                type="button"
-                                class="button export"
-                                (click)="onExportBtnClicked('connection')"
-                            >
-                                <span
-                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
-                                ></span>
-                                Export
-                            </button>
-                        </div>
-                        <p-chart
-                            *ngIf="clientConnectionCountChartData"
-                            type="line"
-                            [data]="clientConnectionCountChartData"
-                            [options]="options"
-                        ></p-chart>
-                    </div>
-                </div>
-            </div>
-        </div>
+        
         <div class="flex row">
             <div class="flex-1">
                 <h4>Actions</h4>
@@ -630,6 +546,91 @@
                                 disabled
                             />
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+                <div class="col-12">
+            <div class="card">
+                <div class="p-fluid p-formgrid grid">
+                    <div class="field m-0 pb-0 col-12 md:col-6">
+                        <p-calendar
+                            [style]="{ width: '27%' }"
+                            [inputStyle]="{ width: '27%' }"
+                            [(ngModel)]="chartDateRange"
+                            (ngModelChange)="chartDateRangeChanged()"
+                            class="m-0 pb-0"
+                            selectionMode="range"
+                            [readonlyInput]="true"
+                        ></p-calendar>
+                    </div>
+                    <div class="field m-0 pb-0 col-12 md:col-6"></div>
+                    <div
+                        *ngIf="!hasNoTxRxInfo"
+                        class="field m-0 pb-0 col-12 md:col-6"
+                    >
+                        <div class="field m-0 col-12 md:col-2">
+                            <button
+                                pButton
+                                type="button"
+                                class="button export"
+                                (click)="onExportBtnClicked('throughput')"
+                            >
+                                <span
+                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
+                                ></span>
+                                Export
+                            </button>
+                        </div>
+
+                        <p-chart
+                            *ngIf="throughputChartData"
+                            type="line"
+                            [data]="throughputChartData"
+                            [options]="options"
+                        ></p-chart>
+                    </div>
+                    <div class="field m-0 pb-0 col-12 md:col-6">
+                        <div class="field m-0 col-12 md:col-2">
+                            <button
+                                pButton
+                                type="button"
+                                class="button export"
+                                (click)="onExportBtnClicked('traffic')"
+                            >
+                                <span
+                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
+                                ></span>
+                                Export
+                            </button>
+                        </div>
+                        <p-chart
+                            *ngIf="byteChartData"
+                            type="line"
+                            [data]="byteChartData"
+                            [options]="options"
+                        ></p-chart>
+                    </div>
+                    <div class="field m-0 pb-0 col-12 md:col-6">
+                        <div class="field m-0 col-12 md:col-2">
+                            <button
+                                pButton
+                                type="button"
+                                class="button export"
+                                (click)="onExportBtnClicked('connection')"
+                            >
+                                <span
+                                    class="pi pi-download p-button-icon p-button-icon-left ng-star-inserted"
+                                ></span>
+                                Export
+                            </button>
+                        </div>
+                        <p-chart
+                            *ngIf="clientConnectionCountChartData"
+                            type="line"
+                            [data]="clientConnectionCountChartData"
+                            [options]="options"
+                        ></p-chart>
                     </div>
                 </div>
             </div>
