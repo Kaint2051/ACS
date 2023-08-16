@@ -1,10 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import * as appConfig from '../app-config.json';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { DeviceLog } from 'src/schemas/device-log.schema';
 import { Connection, Model } from 'mongoose';
+import axios from 'axios';
 import { get } from 'lodash';
+
+interface UserTags {
+  [key: string]: string;
+}
+interface UpdateTagsRequest {
+  ppoe_usernames: string[];
+}
 
 @Injectable()
 export class TasksService {
@@ -57,6 +65,70 @@ export class TasksService {
     this.logger.log('Storing logs to DB');
     await this.deviceLogModel.insertMany(deviceLogs);
     this.logger.log('Stored logs to DB');
+  }
+
+  @Cron('*/10 * * * * *')
+  async updateTags() {
+    if (appConfig.UpdateTagJob === true) {
+      const currentDate = new Date();
+      const online = new Date(currentDate.getTime() - 10 * this.dayInMS);
+      let res: any[] = [];
+      let i = 0;
+      do {
+        res = await this.connection
+          .collection('devices')
+          .find({
+            $and: [
+              {
+                'VirtualParameters.PPPoEACName._value': {
+                  $exists: true,
+                  $ne: '',
+                },
+              },
+              { _lastInform: { $gt: online } },
+              { $or: [{ _tags: { $exists: false } }, { _tags: { $eq: [] } }] },
+            ],
+          })
+          .sort({ _lastInform: 1 })
+          .skip(i)
+          .limit(appConfig.numberUpdatedItem)
+          .toArray();
+
+        const ppopuser: string[] = res
+          .map((i) => i.VirtualParameters)
+          .map((i) => i.PPPoEACName)
+          .map((i) => i._value);
+        console.log(ppopuser);
+        if (ppopuser.length <= 0) {
+          return;
+        }
+        // api
+        const req: UpdateTagsRequest = { ppoe_usernames: ppopuser };
+
+        await axios
+          .post(appConfig.externalUpdateTagUrl, req)
+          .then((response) => {
+            const data: UserTags = response.data;
+            console.log('Before');
+            console.log(data);
+            res.forEach((i) => {
+              const pppoEacName = i.VirtualParameters.PPPoEACName._value;
+              const tag = data[pppoEacName];
+              if (tag) {
+                this.connection
+                  .collection('devices')
+                  .updateOne({ _id: i._id }, { $addToSet: { _tags: tag } })
+                  .catch((err) =>
+                    this.logger.log(
+                      'update tag of pppop user failed with error ' + err,
+                    ),
+                  );
+              }
+            });
+          });
+        i++;
+      } while (res.length > 0);
+    }
   }
 
   async deleteOfflineDevicesAsync(offlineFrom: Date) {
