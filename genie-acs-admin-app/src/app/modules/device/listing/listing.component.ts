@@ -137,7 +137,7 @@ export class ListingComponent implements OnInit, OnDestroy {
     getStatusColor(item: DeviceSummaryResponse) {
         const lastInform = item['Events.Inform']?.value[0] || 0;
         const delta = Date.now() - lastInform;
-        return (delta < 300000 && '#22c55e') || '#ff0000';
+        return (delta < 720000 && '#22c55e') || '#ff0000';
     }
 
     onExportBtnClicked() {
