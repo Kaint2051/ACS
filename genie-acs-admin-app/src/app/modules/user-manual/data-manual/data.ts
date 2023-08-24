@@ -22,19 +22,19 @@ export class DataManual {
             },
             {
                 id: '3',
-                name: 'Cách bật TR-069 trên Router wifi TP-Link EC-225-G5',
-                downloadName: 'Cách bật TR-069 trên Router wifi TP-Link EC-225-G5.docx',
-
-                download:
-                    'https://drive.google.com/file/d/1gTpyadYTsrD_d7jpkqo-g9q0NFla_CYV/view?usp=drive_link',
-            },
-            {
-                id: '4',
                 name: 'Hướng Dẫn Sử Dụng TEDEVACS Version 2.7',
                 downloadName: 'Hướng Dẫn Sử Dụng TEDEVACS Version 2.7.docx',
 
                 download:
                     'https://drive.google.com/file/d/1keRmtJDkmV8Y5SgMpxNLUgnPYHdLGj5t/view?usp=sharing',
+            },
+            {
+                id: '4',
+                name: 'Cách bật TR-069 trên Router wifi TP-Link EC-225-G5',
+                downloadName: 'Cách bật TR-069 trên Router wifi TP-Link EC-225-G5.docx',
+
+                download:
+                    'https://drive.google.com/file/d/1gTpyadYTsrD_d7jpkqo-g9q0NFla_CYV/view?usp=drive_link',
             },
         ];
     }
