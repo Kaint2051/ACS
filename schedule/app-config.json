@@ -5,5 +5,7 @@
   "externalUpdateTagUrl" : "http://10.17.65.112:8000/api/v1/tags",
   "intervalUpdateTag": "0 */30 * * * *",
   "UpdateTagJob": true,
-  "numberUpdatedItem": 20
+  "numberUpdatedItem": 20,
+  "proxyHost": "",
+  "proxyPort": null
 }

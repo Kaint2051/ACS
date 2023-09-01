@@ -4,7 +4,7 @@ import * as appConfig from '../app-config.json';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { DeviceLog } from 'src/schemas/device-log.schema';
 import { Connection, Model } from 'mongoose';
-import axios from 'axios';
+import axios, { AxiosProxyConfig } from 'axios';
 import { get } from 'lodash';
 
 interface UserTags {
@@ -104,9 +104,12 @@ export class TasksService {
         }
         // api
         const req: UpdateTagsRequest = { ppoe_usernames: ppopuser };
-
+        const proxy: AxiosProxyConfig =
+          appConfig.proxyHost && appConfig.proxyPort
+            ? { host: appConfig.proxyHost, port: appConfig.proxyPort }
+            : undefined;
         await axios
-          .post(appConfig.externalUpdateTagUrl, req)
+          .post(appConfig.externalUpdateTagUrl, req, { proxy: proxy })
           .then((response) => {
             const data: UserTags = response.data;
             console.log('Before');
