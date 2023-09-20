@@ -67,7 +67,7 @@ export class TasksService {
     this.logger.log('Stored logs to DB');
   }
 
-  @Cron('*/10 * * * * *')
+  @Cron(appConfig.intervalUpdateTag)
   async updateTags() {
     if (appConfig.UpdateTagJob === true) {
       const currentDate = new Date();
