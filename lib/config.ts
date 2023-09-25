@@ -35,13 +35,21 @@ while (!existsSync(`${ROOT_DIR}/package.json`)) {
 let configDir, cwmpSsl, nbiSsl, fsSsl, uiSsl, fsHostname;
 
 const options = {
+  LDAP_TIMEOUT: { type: 'int', default: 5000 },
+  ALLOW_LOCAL_LOGIN_USERNAMES: {
+    type: 'string',
+    default: 'admin',
+  },
   EXT_DIR: { type: 'path', default: resolve(ROOT_DIR, 'config/ext') },
+  LDAP_SERVER_ADDRESS: {
+    type: 'string',
+    default: 'ldap://10.3.12.57:389',
+  },
   MONGODB_CONNECTION_URL: {
     type: 'string',
-    default:
-      'mongodb://mongoservice:27017/genieacs',
+    default: 'mongodb://mongoservice:27017/genieacs',
+    // 'mongodb+srv://test01:test01123456@cluster0.bzj83.mongodb.net/?retryWrites=true&w=majority',
   },
-
   CWMP_WORKER_PROCESSES: { type: 'int', default: 0 },
   CWMP_PORT: { type: 'int', default: 7547 },
   CWMP_INTERFACE: { type: 'string', default: '::' },

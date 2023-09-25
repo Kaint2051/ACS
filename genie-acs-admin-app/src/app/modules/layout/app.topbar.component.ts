@@ -9,6 +9,7 @@ import { AuthService } from 'src/app/modules/@core/services/auth.service';
 })
 export class AppTopBarComponent implements OnInit {
     items!: MenuItem[];
+    username:string='';
 
     @ViewChild('menubutton') menuButton!: ElementRef;
 
@@ -21,51 +22,24 @@ export class AppTopBarComponent implements OnInit {
         private readonly authService: AuthService
     ) {}
     ngOnInit(): void {
+        this.username=this.authService.getUsername();
         this.items = [
-            {
-                label: 'Logout',
-                icon: 'pi pi-sign-out',
-                command: () => {
-                    console.log('Logout');
-                    this.authService.signingOut();
-                },
-            },
+            // {
+            //      label:'Username: '+this.username,
+            //      icon:'pi pi-user'
+                 
+
+            // },
+           {
+                   label:'Logout',
+                   icon:'pi pi-sign-out',
+                   command:()=>{
+                        console.log('Logout')
+                        this.authService.signingOut();
+                   }
+           }
+
+
         ];
-        // const items = [
-        //     {
-        //         label: 'Options',
-        //         items: [
-        //             {
-        //                 label: 'Update',
-        //                 icon: 'pi pi-refresh',
-        //                 command: () => {
-        //                     this.update();
-        //                 },
-        //             },
-        //             {
-        //                 label: 'Delete',
-        //                 icon: 'pi pi-times',
-        //                 command: () => {
-        //                     this.delete();
-        //                 },
-        //             },
-        //         ],
-        //     },
-        //     {
-        //         label: 'Navigate',
-        //         items: [
-        //             {
-        //                 label: 'Angular',
-        //                 icon: 'pi pi-external-link',
-        //                 url: 'http://angular.io',
-        //             },
-        //             {
-        //                 label: 'Router',
-        //                 icon: 'pi pi-upload',
-        //                 routerLink: '/fileupload',
-        //             },
-        //         ],
-        //     },
-        // ];
     }
 }

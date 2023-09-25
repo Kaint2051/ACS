@@ -18,6 +18,7 @@ import { Router } from '@angular/router';
 })
 export class AuthService {
     private readonly jwtStorageKey = 'jwt';
+    private readonly usernameStorageKey='username';
     public readonly jwt$ = new BehaviorSubject<string>('');
     public readonly isLoggingOut$ = new BehaviorSubject<boolean>(false);
     public readonly isAuthenticated$ = this.jwt$.asObservable().pipe(
@@ -43,11 +44,15 @@ export class AuthService {
         return this.tokenApiService.signIn$(authReq).pipe(
             map((authRes) => {
                 this.storageService.store(this.jwtStorageKey, authRes.jwt);
+                this.storageService.store(this.usernameStorageKey,authReq.username);
                 this.jwt$.next(authRes.jwt);
+                console.log('Stored username',authReq.username);
             })
         );
     }
-
+    getUsername():string{
+        return this.storageService.retrieve(this.usernameStorageKey);
+        }
     signingOut() {
         this.router.navigate(['/auth/logout']);
     }

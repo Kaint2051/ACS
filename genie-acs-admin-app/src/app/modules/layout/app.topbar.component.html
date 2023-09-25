@@ -9,10 +9,9 @@
     <a class="layout-topbar-logo" routerLink="/dashboard">
         <img src="assets/layout/images/logo.png" alt="logo" />
     </a>
-    <!-- <a class="layout-topbar-logo" routerLink="/dashboard">
-        <img src="assets/layout/images/logo.svg" alt="logo" />
-        <span>TEDEV</span>
-    </a> -->
+    <div class="layout-topbar-title">
+      Username: {{this.username}}  
+    </div>
     <button
         #topbarmenubutton
         class="p-link layout-topbar-menu-button layout-topbar-button"
@@ -29,10 +28,7 @@
                 layoutService.state.profileSidebarVisible
         }"
     >
-        <!-- <button class="p-link layout-topbar-button">
-            <i class="pi pi-calendar"></i>
-            <span>Calendar</span>
-        </button> -->
+
         <button
             class="p-link layout-topbar-button"
             (click)="menu.toggle($event)"
@@ -42,12 +38,6 @@
             <span>Profile</span>
         </button>
         <p-menu #menu [model]="items" [popup]="true"></p-menu>
-        <!-- <button
-            class="p-link layout-topbar-button"
-            [routerLink]="'/documentation'"
-        >
-            <i class="pi pi-cog"></i>
-            <span>Settings</span>
-        </button> -->
+
     </div>
 </div>
