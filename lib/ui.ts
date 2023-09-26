@@ -37,6 +37,8 @@ import { authLocal } from './ui/api-functions';
 import * as init from './init';
 import { version as VERSION } from '../package.json';
 import memoize from './common/memoize';
+import { authenticate as ldapAuthenticate$ } from 'ldap-authentication';
+import * as ldapLib from 'ldapjs';
 
 declare module 'koa' {
   interface Request {
@@ -55,6 +57,12 @@ const router = new Router();
 
 const JWT_SECRET = '' + config.get('UI_JWT_SECRET');
 const JWT_COOKIE = 'genieacs-ui-jwt';
+
+const LDAP_TIMEOUT = +config.get('LDAP_TIMEOUT');
+const ALLOW_LOCAL_LOGIN_USERNAMES = config
+  .get('ALLOW_LOCAL_LOGIN_USERNAMES')
+  .toString()
+  .toLowerCase();
 
 const getAuthorizer = memoize(
   (snapshot: string, rolesStr: string): Authorizer => {
@@ -122,6 +130,59 @@ koa.use(async (ctx, next) => {
   return next();
 });
 
+const ldapWaitAsync = async (
+  countDownInMs = 5000
+): Promise<[boolean, boolean]> => {
+  return new Promise((res, reject) => {
+    setTimeout(() => {
+      console.error('Timeout after: ', countDownInMs);
+      res([true, false]);
+    }, countDownInMs);
+  });
+};
+
+const ldapAuthenticateAsync = async (
+  username: string,
+  password: string
+): Promise<[boolean, boolean]> => {
+  console.info('Logging in LDAP for user:', username);
+
+  const _ldapClient = ldapLib.createClient({
+    url: config.get('LDAP_SERVER_ADDRESS'),
+    reconnect: false,
+  });
+
+  try {
+    return new Promise((res, reject) => {
+      _ldapClient.bind(username, password, (err) => {
+        console.error(err);
+        if (!err) {
+          res([false, true]);
+          return;
+        }
+        const invalidCredentials =
+          err.toString().includes('Invalid Credentials') ||
+          err.toString().includes('Invalid Dn Syntax');
+
+        if (invalidCredentials) {
+          res([false, false]);
+          return;
+        }
+        res([true, false]);
+      });
+      _ldapClient.on('error', (error) => {
+        console.error('Error from LDAP server', JSON.stringify(error));
+        res([false, false]);
+      });
+    });
+  } catch (error) {
+    console.error(error);
+    return [true, false];
+  } finally {
+    _ldapClient.unbind();
+  }
+};
+
 router.post('/login', async (ctx) => {
   if (!JWT_SECRET) {
     ctx.status = 500;
@@ -155,7 +216,31 @@ router.post('/login', async (ctx) => {
     logger.accessWarn(log);
   }
 
-  if (await authLocal(ctx.state.configSnapshot, username, password))
+  let isLdapAuthenSuccess = false;
+  try {
+    const [isError, isLoggedIn] = await Promise.race([
+      ldapWaitAsync(LDAP_TIMEOUT),
+      ldapAuthenticateAsync(username, password),
+    ]);
+    const allowLocalLogin = ALLOW_LOCAL_LOGIN_USERNAMES.includes(
+      username.toLowerCase()
+    );
+
+    if (!isError && !isLoggedIn && !allowLocalLogin) return void failure();
+    isLdapAuthenSuccess = isLoggedIn;
+  } catch (e) {
+    console.error(
+      `Ldap Server ${config.get('LDAP_SERVER_ADDRESS')} connection error:`,
+      e
+    );
+  }
+
+  console.log('isLdapAuthenSuccess:', isLdapAuthenSuccess);
+
+  if (
+    isLdapAuthenSuccess ||
+    (await authLocal(ctx.state.configSnapshot, username, password))
+  )
     return void success('local');
 
   failure();
