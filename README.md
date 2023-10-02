@@ -59,6 +59,32 @@ The UI has plenty of configuration options. When you open GenieACS's UI in a
 browser you'll be greeted with a database initialization wizard to help you
 populate some initial configuration.
 
+#TedevACS
+
+TedevACS is a high performance Auto Configuration Server (ACS) for remote
+management of TR-069 enabled devices of Mobifone Customer.
+
+##Quick Start
+Setup in server deployment, edit the network mongodb with gateway docker:
+
+    sudo nano /etc/mongod.conf
+    
+and in the bindIP, fill more IP gateway docker is '172.17.0.1' and then save this file
+
+To build from source instead, clone this repo or download the source archive:
+
+    sudo git clone https://github.com/Kaint2051/ACS.git
+
+Remmember change the IP src from 'genie-acs-admin-app/src/envirorment/envirorment.ts' to match the IP Server, 
+After that, move into the folder source and build image docker:
+
+    cd ACS/
+    sudo docker build -t "image_name" .
+
+then, run this image to deploy TedevACS with below command:
+
+    sudo docker run --add-host=mongoservice:172.17.0.1 -p 7547:7547 -p 7548:7548 -p 3000:3000 -p 4200:4200 "image_name"
+After built sucessfully, open browser and check 
 Visit [docs.genieacs.com](https://docs.genieacs.com) for more documentation and
 a complete installation guide for production deployments.
 
