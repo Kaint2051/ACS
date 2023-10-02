@@ -62,7 +62,7 @@ populate some initial configuration.
 # TedevACS
 
 TedevACS is a high performance Auto Configuration Server (ACS) for remote
-management of TR-069 enabled devices of Mobifone Customer.
+management of TR-069 enabled devices of Mobifone Customer and built from GenieACS.
 
 ## Deployment
 Setup in server deployment, edit the network mongodb with gateway docker:
