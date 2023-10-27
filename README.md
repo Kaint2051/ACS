@@ -65,7 +65,7 @@ TedevACS is a high performance Auto Configuration Server (ACS) for remote
 management of TR-069 enabled devices of Mobifone Customer and built from GenieACS.
 
 ## Deployment
-Setup in server deployment, edit the network mongodb with gateway docker:
+Setup in server Linux deployment, edit the network mongodb with gateway docker:
 
     sudo nano /etc/mongod.conf
     
@@ -84,7 +84,7 @@ After that, move into the folder source and build image docker:
 then, run this image to deploy TedevACS with below command:
 
     sudo docker run --add-host=mongoservice:172.17.0.1 -p 7547:7547 -p 7548:7548 -p 3000:3000 -p 4200:4200 "image_name"
-After built sucessfully, open browser and check 
+After built sucessfully, open browser `http:"your-ip:4200"` and check 
 
 Visit [docs.genieacs.com](https://docs.genieacs.com) for more documentation and
 a complete installation guide for production deployments.
