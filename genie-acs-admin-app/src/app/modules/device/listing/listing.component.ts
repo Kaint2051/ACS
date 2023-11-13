@@ -148,10 +148,13 @@ export class ListingComponent implements OnInit, OnDestroy {
             { length: batchCount },
             (_, i) => batchSize
         );
+        
+        const filter = this.route.snapshot.queryParams['filter'];
+        
         const devices: any[] = [];
         concat(
             ...batchSizes.map((pageSize, pageIndex) => {
-                return this.deviceApiService.get$(pageIndex, pageSize, '');
+                return this.deviceApiService.get$(pageIndex, pageSize, filter);
             })
         )
             .pipe(
