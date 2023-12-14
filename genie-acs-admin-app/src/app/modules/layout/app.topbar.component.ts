@@ -27,8 +27,6 @@ export class AppTopBarComponent implements OnInit {
             // {
             //      label:'Username: '+this.username,
             //      icon:'pi pi-user'
-                 
-
             // },
            {
                    label:'Logout',
@@ -38,8 +36,10 @@ export class AppTopBarComponent implements OnInit {
                         this.authService.signingOut();
                    }
            }
-
-
         ];
+    }
+    logout(): void {
+        console.log('Logout');
+        this.authService.signingOut();
     }
 }

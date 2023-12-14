@@ -35,7 +35,7 @@
             label="Show"
         >
             <i class="pi pi-user"></i>
-            <span>Profile</span>
+            <span (click)="logout()">Logout</span>
         </button>
         <p-menu #menu [model]="items" [popup]="true"></p-menu>
 

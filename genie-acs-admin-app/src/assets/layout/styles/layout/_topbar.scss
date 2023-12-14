@@ -98,7 +98,7 @@
 
 @media (max-width: 991px) {
     .layout-topbar {
-        justify-content: space-between;
+        justify-content: flex-start;
 
         .layout-topbar-logo {
             width: auto;
@@ -106,6 +106,7 @@
         }
 
         .layout-menu-button {
+            margin-right: 5px;
             margin-left: 0;
             order: 1;
         }
@@ -113,6 +114,9 @@
         .layout-topbar-menu-button {
             display: inline-flex;
             margin-left: 0;
+            order: 4;
+        }
+        .layout-topbar-title {
             order: 3;
         }
 
@@ -156,5 +160,6 @@
                 }
             }
         }
+
     }
 }
